@@ -1,26 +1,15 @@
 <!DOCTYPE html>
 <html lang="zh-CN" class="no-js">
 <head>
-
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    
- 
     <title>联系我们 - TribitHub</title>
-
- 
     <link href="https://fonts.googleapis.com/css?family=IBM+Plex+Sans:400,600" rel="stylesheet">
     <link rel="icon" href="dist/images/favicon.ico">
-    <link rel="icon" href="images/favicon.ico">
     <link rel="stylesheet" href="dist/css/style.css">
-
-    <script src="https://unpkg.com/animejs@3.0.1/lib/anime.min.js"></script>
-    <script src="https://unpkg.com/scrollreveal@4.0.0/dist/scrollreveal.min.js"></script>
-
-  
     <script>
-        
+        // 主题切换的内联脚本，保持不变
         (function() {
             const theme = localStorage.getItem('theme');
             if (theme === 'light') {
@@ -28,53 +17,46 @@
             }
         })();
     </script>
-
-   
     <style>
         .form-status {
             margin-top: 16px;
             font-weight: 600;
             font-size: 16px;
-          
         }
     </style>
 </head>
 <body class="is-boxed has-animations">
     <div class="body-wrap">
-        
         <header class="site-header">
             <div class="container">
                 <div class="site-header-inner">
                     <div class="brand header-brand">
                         <h1 class="m-0">
                             <a href="index.html">
-
                                 <span class="header-brand-text">TribitHub</span>
                             </a>
                         </h1>
                     </div>
-                    
                     <ul class="header-links list-reset">
                         <li><a href="index.html">首页</a></li>
                         <li><a href="pricing.html">我们的介绍</a></li>
                         <li><a href="contact.html">联系我们</a></li>
+                        <!-- 主题切换器将在这里 (如果您的JS文件里有逻辑) -->
                     </ul>
                 </div>
             </div>
         </header>
 
-       
         <main>
             <section class="contact-section section">
                 <div class="container">
                     <div class="section-inner">
                         <div class="section-header text-center">
                             <h2 class="section-title mt-0">联系我们</h2>
-                            <p class="section-paragraph">有任何想法或需求？请填写下方的表单，或通过右侧的方式直接联系我们。我们会在24小时内给您答复。</p>
+                            <p class="section-paragraph">有任何想法或需求？请填写下方的表单，我们会在24小时内给您答复。</p>
                         </div>
                         
                         <div class="contact-wrap">
-                         
                             <div class="contact-form">
                                 <form id="contactForm">
                                     <div class="field">
@@ -109,86 +91,63 @@
                                 </form>
                                 <div id="formStatus" class="form-status"></div>
                             </div>
-
-                         
-                            <div class="contact-info">
-                                <h4>其他联系方式</h4>
-                                <p>如果您希望更即时地沟通，可以通过以下方式找到我们：</p>
-                                <ul class="list-reset">
-                                    <li><strong>邮箱:</strong> silenceyuan@gmail.com </li>
-                                   
-                                    <li><strong>QQ:</strong> 122225554 </li>
-                                </ul>
-                                <hr>
-                                <h4>工作时间</h4>
-                                <p>周一至周五<br>上午 9:00 - 下午 6:00</p>
-                            </div>
                         </div>
                     </div>
                 </div>
             </section>
         </main>
 
-       
         <footer class="site-footer">
-            <div class="container">
+             <div class="container">
                 <div class="site-footer-inner">
-                    <div class="brand footer-brand">
-						
-						
-						
-                    </div>
-                    <ul class="footer-links list-reset">
-                        <li><a href="terms.html">服务条款</a></li>
-                        <li><a href="privacy.html">隐私政策</a></li>
-                    </ul>
-                    <ul class="footer-social-links list-reset">
-                        <!-- 社交链接SVG图标 -->
-                    </ul>
-                    <div class="footer-copyright">&copy; 2025 TribitHub, 版权所有</div>
+                     <div class="footer-copyright">&copy; 2025 TribitHub, 版权所有</div>
                 </div>
             </div>
         </footer>
     </div>
 
-
-
-
-    <script src="dist/js/main.min.js"></script>
-
+    <!-- ========= SUPABASE 客户端初始化 ========= -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-    document.getElementById('contactForm').addEventListener('submit', function(event) {
+        const SUPABASE_URL = '你的_SUPABASE_URL';       // 替换成你的 Supabase URL
+        const SUPABASE_ANON_KEY = '你的_SUPABASE_ANON_KEY'; // 替换成你的 Supabase Anon Key
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    </script>
+    <!-- ======================================== -->
+
+    <!-- ========= 表单提交逻辑 ========= -->
+    <script>
+    document.getElementById('contactForm').addEventListener('submit', async function(event) {
         event.preventDefault();
         const form = event.target;
         const formData = new FormData(form);
-        const data = Object.fromEntries(formData.entries());
         const statusDiv = document.getElementById('formStatus');
 
         statusDiv.textContent = '正在提交...';
         statusDiv.style.color = 'var(--text-secondary)';
 
-        fetch('/api/submit-ticket', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data),
-        })
-        .then(response => response.json())
-        .then(result => {
-            if (result.success) {
-                statusDiv.textContent = result.message;
-                statusDiv.style.color = '#02CB6A';
-                form.reset();
-            } else {
-                statusDiv.textContent = '提交失败: ' + result.message;
-                statusDiv.style.color = '#FF4F4F';
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            statusDiv.textContent = '提交时发生网络错误，请稍后重试。';
+        // 使用 Supabase 客户端将数据插入 'tickets' 表
+        const { data, error } = await supabase
+            .from('tickets')
+            .insert({
+                name: formData.get('name'),
+                email: formData.get('email'),
+                subject: formData.get('subject'),
+                message: formData.get('message')
+            });
+
+        if (error) {
+            console.error('提交失败:', error);
+            statusDiv.textContent = '提交失败: ' + error.message;
             statusDiv.style.color = '#FF4F4F';
-        });
+        } else {
+            statusDiv.textContent = '您的工单已成功提交！';
+            statusDiv.style.color = '#02CB6A';
+            form.reset();
+        }
     });
     </script>
+    <!-- ============================== -->
+
 </body>
 </html>

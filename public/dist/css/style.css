@@ -293,3 +293,69 @@ input:checked + .slider .icon.moon { opacity: 0; }
 .process-item:hover .process-item-number { color: var(--accent-glow); opacity: 0.5; }
 .process-item h4, .process-item p { position: relative; z-index: 1; }
 @media (max-width: 768px) { .process-wrap { grid-template-columns: 1fr; } }
+
+
+
+/* ======================================================= */
+/* === Login Page Specific Styles / 登录页面专属样式 === */
+/* ======================================================= */
+
+/* 
+ * 这个类应用于登录页的 <body> 标签，
+ * 使其内容垂直和水平居中。
+ */
+body.login-page {
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    min-height: 100vh; 
+    /* 背景色会继承 :root 或 .light-theme 中的变量 */
+}
+
+/* 
+ * 登录表单的容器样式
+ */
+.login-container { 
+    max-width: 400px; 
+    width: 100%; 
+    padding: 32px; 
+    background-color: var(--bg-card, #1D2026); 
+    border-radius: 8px;
+    border: 1px solid var(--border-color, #242830);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+
+/* 
+ * 登录框的标题 "TribitHub 用户登录"
+ */
+.login-title { 
+    text-align: center; 
+    margin-bottom: 24px; 
+    color: var(--text-primary, #fff);
+}
+
+/* 
+ * 用于显示状态消息（如“发送成功”或错误信息）的容器
+ */
+.status-message { 
+    text-align: center; 
+    margin-bottom: 16px; 
+    font-size: 14px; 
+    font-weight: 600;
+    min-height: 20px; /* 预留空间防止布局跳动 */
+    transition: color 0.3s ease;
+}
+
+/* 
+ * 成功消息的颜色
+ */
+.success-message {
+    color: #02CB6A;
+}
+
+/* 
+ * 错误消息的颜色
+ */
+.error-message { 
+    color: #FF4F4F; 
+}

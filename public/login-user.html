@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户登录 - TribitHub</title>
+    
+    <!-- 链接到包含所有样式的中央样式表 -->
+    <link rel="stylesheet" href="dist/css/style.css">
+
+</head>
+<!-- 
+  重要：为 body 标签添加 "login-page" 类。
+  这样，我们刚刚在 style.css 中添加的 .login-page 样式规则就会生效。
+-->
+<body class="login-page">
+    <div class="login-container">
+        <h1 class="h3 login-title">TribitHub 用户登录</h1>
+        
+        <div id="statusMessage" class="status-message"></div>
+
+        <form id="userLoginForm">
+            <div class="field">
+                <div class="control">
+                    <input class="input" type="email" name="email" placeholder="请输入您的邮箱" required>
+                </div>
+            </div>
+            <div class="field">
+                <div class="control">
+                    <button class="button button-primary button-block" type="submit">发送登录链接</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- JavaScript 逻辑部分保持不变 -->
+    <script>
+    document.getElementById('userLoginForm').addEventListener('submit', async function(event) {
+        event.preventDefault();
+        const form = event.target;
+        const email = form.email.value;
+        const statusMessage = document.getElementById('statusMessage');
+        const submitButton = form.querySelector('button');
+
+        statusMessage.textContent = '正在处理...';
+        statusMessage.className = 'status-message';
+        submitButton.disabled = true;
+        submitButton.textContent = '请稍候...';
+
+        try {
+            const response = await fetch('/api/auth', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ email: email }),
+            });
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.error || '发生了一个未知错误，请稍后重试。');
+            }
+            statusMessage.textContent = result.message;
+            statusMessage.classList.add('success-message');
+        } catch (error) {
+            statusMessage.textContent = error.message;
+            statusMessage.classList.add('error-message');
+        } finally {
+            submitButton.disabled = false;
+            submitButton.textContent = '发送登录链接';
+        }
+    });
+    </script>
+</body>
+</html>
