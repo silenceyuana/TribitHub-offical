@@ -41,7 +41,6 @@
                         <li><a href="index.html">首页</a></li>
                         <li><a href="pricing.html">我们的介绍</a></li>
                         <li><a href="contact.html">联系我们</a></li>
-                        <!-- 主题切换器将在这里 (如果您的JS文件里有逻辑) -->
                     </ul>
                 </div>
             </div>
@@ -109,9 +108,11 @@
     <!-- ========= SUPABASE 客户端初始化 ========= -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-        const SUPABASE_URL = 'https://geswrbnmsaqwqdwpoueo.supabase.co';       // 替换成你的 Supabase URL
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdlc3dyYm5tc2Fxd3Fkd3BvdWVvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg0MzY1ODIsImV4cCI6MjA3NDAxMjU4Mn0.DwK4xdbsqXkDZZ65kBXBx2yhROEv2ZNybrtt8m8abW0'; // 替换成你的 Supabase Anon Key
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const SUPABASE_URL = 'https://geswrbnmsaqwqdwpoueo.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdlc3dyYm5tc2Fxd3Fkd3BvdWVvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg0MzY1ODIsImV4cCI6MjA3NDAxMjU4Mn0.DwK4xdbsqXkDZZ65kBXBx2yhROEv2ZNybrtt8m8abW0';
+        
+        // 【修正】使用一个新的变量名 `supabaseClient` 来避免与全局库的名称 `supabase` 冲突
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     </script>
     <!-- ======================================== -->
 
@@ -126,8 +127,8 @@
         statusDiv.textContent = '正在提交...';
         statusDiv.style.color = 'var(--text-secondary)';
 
-        // 使用 Supabase 客户端将数据插入 'tickets' 表
-        const { data, error } = await supabase
+        // 【修正】使用上面新创建的 `supabaseClient` 变量来执行数据库操作
+        const { data, error } = await supabaseClient
             .from('tickets')
             .insert({
                 name: formData.get('name'),
