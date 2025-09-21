@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>后台登录</title>
+    <link rel="stylesheet" href="dist/css/style.css">
+    <style>
+        body { display: flex; align-items: center; justify-content: center; min-height: 100vh; background-color: #15181D; }
+        .login-container { max-width: 400px; width: 100%; padding: 32px; background-color: #1D2026; border-radius: 4px; }
+        .login-title { text-align: center; margin-bottom: 24px; }
+        .error-message { color: #FF4F4F; text-align: center; margin-bottom: 16px; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <h1 class="h3 login-title">TribitHub 后台登录</h1>
+        
+    
+        <form action="/login" method="POST">
+            <div class="field">
+                <div class="control">
+                    <input class="input" type="email" name="email" placeholder="邮箱" required>
+                </div>
+            </div>
+            <div class="field">
+                <div class="control">
+                    <input class="input" type="password" name="password" placeholder="密码" required>
+                </div>
+            </div>
+            <div class="field">
+                <div class="control">
+                    <button class="button button-primary button-block" type="submit">登录</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</body>
+</html>

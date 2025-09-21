@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>后台管理 - 工单列表</title>
+    <!-- 复用前台的CSS样式 -->
+    <link rel="stylesheet" href="dist/css/style.css">
+    <style>
+        /* 为后台页面添加一些特定样式 */
+        body { 
+            background-color: #15181D; 
+        }
+        main {
+            flex: 1 0 auto;
+        }
+        .admin-container { 
+            max-width: 1280px; 
+            margin: 0 auto; 
+            padding: 48px 24px;
+        }
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .ticket-table-wrapper {
+            overflow-x: auto; /* 在小屏幕上可以水平滚动表格 */
+        }
+        .ticket-table { 
+            width: 100%; 
+            border-collapse: collapse; 
+        }
+        .ticket-table th, 
+        .ticket-table td { 
+            padding: 12px 16px; 
+            text-align: left; 
+            border-bottom: 1px solid #242830; 
+        }
+        .ticket-table th { 
+            color: #fff; 
+            white-space: nowrap;
+        }
+        .ticket-table td { 
+            vertical-align: top; 
+            color: #8A94A7;
+        }
+        /* 为长文本内容设置最大宽度和换行 */
+        .ticket-table .message-cell { 
+            max-width: 400px; 
+            min-width: 250px;
+            white-space: pre-wrap; 
+            word-break: break-word; 
+        }
+        .ticket-table .date-cell { 
+            white-space: nowrap; 
+        }
+        #loadingMessage { 
+            text-align: center; 
+            padding: 40px; 
+            color: #8A94A7;
+        }
+    </style>
+</head>
+<body class="is-boxed">
+    <div class="body-wrap" style="min-height: 100vh; display: flex; flex-direction: column;">
+        <main>
+            <div class="admin-container">
+                <div class="admin-header">
+                    <h1 class="h2 mt-0 mb-0">工单管理后台</h1>
+                    <a href="/logout" class="button button-sm">登出</a>
+                </div>
+                <p>这里显示了所有从前台提交的工单。</p>
+
+                <div id="ticketsContainer" class="ticket-table-wrapper">
+                    <p id="loadingMessage">正在加载工单数据...</p>
+                    <table class="ticket-table" style="display:none;">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>提交时间</th>
+                                <th>称呼</th>
+                                <th>邮箱</th>
+                                <th>主题</th>
+                                <th class="message-cell">需求描述</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ticketsTbody">
+                         
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+
+    window.addEventListener('DOMContentLoaded', () => {
+        fetchTickets();
+    });
+
+    function fetchTickets() {
+        const tbody = document.getElementById('ticketsTbody');
+        const table = document.querySelector('.ticket-table');
+        const loadingMessage = document.getElementById('loadingMessage');
+
+     
+        fetch('/api/tickets')
+            .then(response => {
+         
+                if (response.status === 401 || response.status === 403) {
+                    
+                    window.location.href = '/login';
+                    return;
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (!data) return; 
+
+                loadingMessage.style.display = 'none';
+                table.style.display = 'table';
+                tbody.innerHTML = ''; 
+
+                if (data.tickets && data.tickets.length > 0) {
+                    data.tickets.forEach(ticket => {
+                      
+                        const date = new Date(ticket.submitted_at);
+                        const formattedDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+
+                      
+                        const row = `
+                            <tr>
+                                <td>${ticket.id}</td>
+                                <td class="date-cell">${formattedDate}</td>
+                                <td>${escapeHTML(ticket.name)}</td>
+                                <td>${escapeHTML(ticket.email)}</td>
+                                <td>${escapeHTML(ticket.subject)}</td>
+                                <td class="message-cell">${escapeHTML(ticket.message)}</td>
+                            </tr>
+                        `;
+                       
+                        tbody.innerHTML += row;
+                    });
+                } else {
+                   
+                    table.style.display = 'none';
+                    loadingMessage.textContent = '当前没有工单。';
+                    loadingMessage.style.display = 'block';
+                }
+            })
+            .catch(error => {
+                console.error('获取工单数据失败:', error);
+                loadingMessage.textContent = '无法加载数据，请检查服务器连接或重新登录。';
+                loadingMessage.style.color = '#FF4F4F';
+            });
+    }
+
+    
+    function escapeHTML(str) {
+        if (typeof str !== 'string') return '';
+        return str.replace(/[&<>'"]/g, 
+            tag => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                "'": '&#39;',
+                '"': '&quot;'
+            }[tag] || tag)
+        );
+    }
+    </script>
+</body>
+</html>
