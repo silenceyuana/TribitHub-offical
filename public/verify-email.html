@@ -1,0 +1,98 @@
+<!-- public/verify-email.html -->
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>验证您的邮箱 - TribitHub</title>
+    <link rel="stylesheet" href="dist/css/style.css">
+    <style>
+        body { display: flex; align-items: center; justify-content: center; min-height: 100vh; background-color: #15181D; }
+        .login-container { max-width: 400px; width: 100%; padding: 32px; background-color: #1D2026; border-radius: 4px; }
+        .login-title { text-align: center; margin-bottom: 24px; }
+        .status-message { text-align: center; margin-bottom: 16px; font-size: 14px; min-height: 20px; }
+        .success-message { color: #02CB6A; }
+        .error-message { color: #FF4F4F; }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <h1 class="h3 login-title">检查您的邮箱</h1>
+        <p style="text-align: center; margin-bottom: 16px;">我们已向您的邮箱发送了一个6位数的验证码。</p>
+        
+        <div id="statusMessage" class="status-message"></div>
+
+        <form id="verifyForm">
+            <div class="field">
+                <div class="control">
+                    <input class="input" type="email" name="email" placeholder="您的邮箱" required readonly>
+                </div>
+            </div>
+            <div class="field">
+                <div class="control">
+                    <input class="input" type="text" name="code" placeholder="输入6位数验证码" required pattern="\d{6}" maxlength="6">
+                </div>
+            </div>
+            <div class="field">
+                <div class="control">
+                    <button class="button button-primary button-block" type="submit">验证</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        const form = document.getElementById('verifyForm');
+        const emailInput = form.querySelector('input[name="email"]');
+        const statusMessage = document.getElementById('statusMessage');
+
+        // 页面加载时，从 URL 或 localStorage 获取注册时使用的邮箱并填充
+        window.addEventListener('DOMContentLoaded', () => {
+            const registeredEmail = sessionStorage.getItem('registeredEmail');
+            if (registeredEmail) {
+                emailInput.value = registeredEmail;
+            } else {
+                statusMessage.textContent = '无法获取邮箱信息，请返回注册页重试。';
+                statusMessage.classList.add('error-message');
+            }
+        });
+
+        form.addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const email = emailInput.value;
+            const code = form.code.value;
+            const submitButton = form.querySelector('button');
+
+            statusMessage.textContent = '正在验证...';
+            statusMessage.className = 'status-message';
+            submitButton.disabled = true;
+
+            try {
+                const response = await fetch('/api/verify-code', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, code }),
+                });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.error || '验证失败');
+
+                // 验证成功
+                sessionStorage.removeItem('registeredEmail'); // 清除临时保存的邮箱
+                statusMessage.textContent = result.message;
+                statusMessage.classList.add('success-message');
+                // 几秒后跳转到登录页
+                setTimeout(() => {
+                    window.location.href = `/login-user.html?message=verification_success`;
+                }, 2000);
+
+            } catch (error) {
+                statusMessage.textContent = error.message;
+                statusMessage.classList.add('error-message');
+            } finally {
+                submitButton.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>

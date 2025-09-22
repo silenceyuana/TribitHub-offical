@@ -1,19 +1,22 @@
+<!-- public/login-user.html -->
+
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>用户登录 - TribitHub</title>
-    
-    <!-- 链接到包含所有样式的中央样式表 -->
     <link rel="stylesheet" href="dist/css/style.css">
-
+    <style>
+        body { display: flex; align-items: center; justify-content: center; min-height: 100vh; background-color: #15181D; }
+        .login-container { max-width: 400px; width: 100%; padding: 32px; background-color: #1D2026; border-radius: 4px; }
+        .login-title { text-align: center; margin-bottom: 24px; }
+        .status-message { text-align: center; margin-bottom: 16px; font-size: 14px; min-height: 20px; }
+        .success-message { color: #02CB6A; }
+        .error-message { color: #FF4F4F; }
+    </style>
 </head>
-<!-- 
-  重要：为 body 标签添加 "login-page" 类。
-  这样，我们刚刚在 style.css 中添加的 .login-page 样式规则就会生效。
--->
-<body class="login-page">
+<body>
     <div class="login-container">
         <h1 class="h3 login-title">TribitHub 用户登录</h1>
         
@@ -27,47 +30,69 @@
             </div>
             <div class="field">
                 <div class="control">
-                    <button class="button button-primary button-block" type="submit">发送登录链接</button>
+                    <input class="input" type="password" name="password" placeholder="请输入密码" required>
+                </div>
+            </div>
+            <div class="field">
+                <div class="control">
+                    <button class="button button-primary button-block" type="submit">登录</button>
                 </div>
             </div>
         </form>
+         <p style="text-align: center; margin-top: 16px; font-size: 14px;">
+            还没有账号？ <a href="/register.html">立即注册</a>
+        </p>
     </div>
 
-    <!-- JavaScript 逻辑部分保持不变 -->
     <script>
+    // 检查 URL 中是否有提示消息（例如从邮箱验证成功后跳转过来）
+    window.addEventListener('DOMContentLoaded', () => {
+        const params = new URLSearchParams(window.location.search);
+        const statusMessage = document.getElementById('statusMessage');
+        if (params.get('message') === 'verification_success') {
+            statusMessage.textContent = '邮箱验证成功！现在您可以登录了。';
+            statusMessage.classList.add('success-message');
+        }
+    });
+
+    // 登录表单提交逻辑
     document.getElementById('userLoginForm').addEventListener('submit', async function(event) {
         event.preventDefault();
         const form = event.target;
         const email = form.email.value;
+        const password = form.password.value;
+        
         const statusMessage = document.getElementById('statusMessage');
         const submitButton = form.querySelector('button');
 
-        statusMessage.textContent = '正在处理...';
+        statusMessage.textContent = '正在登录...';
         statusMessage.className = 'status-message';
         submitButton.disabled = true;
-        submitButton.textContent = '请稍候...';
 
         try {
-            const response = await fetch('/api/auth', {
+            const response = await fetch('/api/login/password', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ email: email }),
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password }),
             });
+
             const result = await response.json();
 
             if (!response.ok) {
-                throw new Error(result.error || '发生了一个未知错误，请稍后重试。');
+                throw new Error(result.error || '发生未知错误');
             }
-            statusMessage.textContent = result.message;
-            statusMessage.classList.add('success-message');
+
+            // 登录成功，将 session 保存到 localStorage
+            localStorage.setItem('supabase.auth.session', JSON.stringify(result.session));
+
+            // 跳转到用户中心
+            window.location.href = '/dashboard.html';
+
         } catch (error) {
             statusMessage.textContent = error.message;
             statusMessage.classList.add('error-message');
         } finally {
             submitButton.disabled = false;
-            submitButton.textContent = '发送登录链接';
         }
     });
     </script>

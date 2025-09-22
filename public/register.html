@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>注册 - TribitHub</title>
+    <link rel="stylesheet" href="dist/css/style.css">
+    <style>
+        body { 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            min-height: 100vh; 
+            background-color: #15181D; 
+        }
+        .login-container { 
+            max-width: 400px; 
+            width: 100%; 
+            padding: 32px; 
+            background-color: #1D2026; 
+            border-radius: 4px; 
+        }
+        .login-title { 
+            text-align: center; 
+            margin-bottom: 24px; 
+        }
+        .status-message { 
+            text-align: center; 
+            margin-bottom: 16px; 
+            font-size: 14px; 
+            min-height: 20px; 
+            line-height: 1.4;
+        }
+        .success-message { 
+            color: #02CB6A; 
+        }
+        .error-message { 
+            color: #FF4F4F; 
+        }
+        .cf-turnstile {
+            margin-bottom: 16px;
+        }
+    </style>
+    <!-- 1. 异步加载 Cloudflare Turnstile 的验证脚本 -->
+    <script src="https://challenges.cloudflare.com/turnstile/v2/api.js" async defer></script>
+</head>
+<body>
+    <div class="login-container">
+        <h1 class="h3 login-title">创建 TribitHub 账号</h1>
+        
+        <div id="statusMessage" class="status-message"></div>
+
+        <form id="registerForm">
+            <div class="field">
+                <div class="control">
+                    <input class="input" type="email" name="email" placeholder="请输入您的邮箱" required>
+                </div>
+            </div>
+            <div class="field">
+                <div class="control">
+                    <input class="input" type="password" name="password" placeholder="设置密码 (至少6位)" required minlength="6">
+                </div>
+            </div>
+            
+            <!-- 2. Cloudflare Turnstile 人机验证部件 -->
+            <!-- 请确保将 data-sitekey 替换为您自己的 Site Key -->
+            <div class="cf-turnstile" data-sitekey="0x4AAAAAAB2uPC06kic3J2j3" data-theme="dark"></div>
+
+            <div class="field">
+                <div class="control">
+                    <button class="button button-primary button-block" type="submit">注册</button>
+                </div>
+            </div>
+        </form>
+        <p style="text-align: center; margin-top: 16px; font-size: 14px;">
+            已有账号？ <a href="/login-user.html">立即登录</a>
+        </p>
+    </div>
+
+    <script>
+        // =======================================================
+        // register.html - 完整、未经省略的客户端脚本
+        // =======================================================
+
+        document.getElementById('registerForm').addEventListener('submit', async function(event) {
+            event.preventDefault(); // 阻止表单的默认提交行为
+
+            // 获取表单元素和数据
+            const form = event.target;
+            const email = form.email.value;
+            const password = form.password.value;
+            const turnstileToken = form['cf-turnstile-response'].value; // Cloudflare 会自动填充这个隐藏字段
+            
+            // 获取 UI 元素用于反馈
+            const statusMessage = document.getElementById('statusMessage');
+            const submitButton = form.querySelector('button');
+
+            // 提供即时反馈，并禁用按钮防止重复提交
+            statusMessage.textContent = '正在处理，请稍候...';
+            statusMessage.className = 'status-message';
+            submitButton.disabled = true;
+
+            try {
+                // 向我们的后端 /api/register 接口发送注册请求
+                const response = await fetch('/api/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        email: email, 
+                        password: password,
+                        'cf-turnstile-response': turnstileToken
+                    }),
+                });
+                
+                // 解析后端返回的 JSON 数据
+                const result = await response.json();
+
+                // 如果后端返回非成功状态码 (例如 400, 403, 500)，则抛出错误
+                if (!response.ok) {
+                    throw new Error(result.error || '发生未知错误，请重试');
+                }
+
+                // 如果后端处理成功 (返回 2xx 状态码)
+                // 1. 将用户注册时使用的邮箱临时保存在 sessionStorage 中。
+                //    sessionStorage 中的数据在浏览器标签页关闭后会自动清除，比 localStorage 更适合临时数据。
+                sessionStorage.setItem('registeredEmail', email);
+                
+                // 2. 将用户重定向到验证码输入页面
+                window.location.href = '/verify-email.html';
+
+            } catch (error) {
+                // 如果在 fetch 过程中或后端返回错误，则在这里捕获
+                statusMessage.textContent = error.message;
+                statusMessage.classList.add('error-message');
+
+                // 如果 Turnstile 部件存在，则重置它，以便用户可以修正信息后再次尝试
+                if (window.turnstile) {
+                    window.turnstile.reset();
+                }
+            } finally {
+                // 无论成功还是失败，最后都重新启用提交按钮
+                submitButton.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>

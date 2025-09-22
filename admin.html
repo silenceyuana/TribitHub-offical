@@ -10,6 +10,7 @@
         /* 为后台页面添加一些特定样式 */
         body { 
             background-color: #15181D; 
+            color: #E7E9EA;
         }
         main {
             flex: 1 0 auto;
@@ -27,6 +28,9 @@
         }
         .ticket-table-wrapper {
             overflow-x: auto; /* 在小屏幕上可以水平滚动表格 */
+            background-color: #1D2026;
+            border-radius: 8px;
+            border: 1px solid #242830;
         }
         .ticket-table { 
             width: 100%; 
@@ -38,15 +42,20 @@
             text-align: left; 
             border-bottom: 1px solid #242830; 
         }
+        .ticket-table tr:last-child td {
+            border-bottom: none; /* 移除最后一行td的下边框 */
+        }
         .ticket-table th { 
             color: #fff; 
             white-space: nowrap;
+            font-size: 14px;
+            text-transform: uppercase;
+            color: #8A94A7;
         }
         .ticket-table td { 
             vertical-align: top; 
-            color: #8A94A7;
+            color: #E7E9EA;
         }
-        /* 为长文本内容设置最大宽度和换行 */
         .ticket-table .message-cell { 
             max-width: 400px; 
             min-width: 250px;
@@ -69,7 +78,7 @@
             <div class="admin-container">
                 <div class="admin-header">
                     <h1 class="h2 mt-0 mb-0">工单管理后台</h1>
-                    <a href="/logout" class="button button-sm">登出</a>
+                    <a href="/logout" id="logoutLink" class="button button-sm">登出</a>
                 </div>
                 <p>这里显示了所有从前台提交的工单。</p>
 
@@ -96,40 +105,60 @@
     </div>
 
     <script>
+        // =======================================================
+        // admin.html - 最终、完整、未经省略的客户端脚本
+        // 实现了基于 Token 的安全数据获取
+        // =======================================================
 
-    window.addEventListener('DOMContentLoaded', () => {
-        fetchTickets();
-    });
+        // 页面加载完成后，立即尝试获取工单数据
+        window.addEventListener('DOMContentLoaded', () => {
+            fetchTickets();
+        });
 
-    function fetchTickets() {
-        const tbody = document.getElementById('ticketsTbody');
-        const table = document.querySelector('.ticket-table');
-        const loadingMessage = document.getElementById('loadingMessage');
+        // 核心函数：获取并渲染工单列表
+        function fetchTickets() {
+            const tbody = document.getElementById('ticketsTbody');
+            const table = document.querySelector('.ticket-table');
+            const loadingMessage = document.getElementById('loadingMessage');
 
-     
-        fetch('/api/tickets')
+            // 步骤 1: 从 sessionStorage 中获取管理员登录时保存的 access token
+            const accessToken = sessionStorage.getItem('adminAccessToken');
+
+            // 步骤 2: 如果没有 token，说明未登录，立即重定向到登录页
+            if (!accessToken) {
+                window.location.href = '/login.html';
+                return; // 终止执行
+            }
+
+            // 步骤 3: 发起 fetch 请求，并在 Headers 中附带 Authorization Bearer Token
+            fetch('/api/tickets', {
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`
+                }
+            })
             .then(response => {
-         
+                // 步骤 4: 处理认证失败的情况 (例如 token 过期或无效)
                 if (response.status === 401 || response.status === 403) {
-                    
-                    window.location.href = '/login';
-                    return;
+                    sessionStorage.removeItem('adminAccessToken');
+                    window.location.href = '/login.html';
+                    return; 
+                }
+                if (!response.ok) {
+                    throw new Error(`服务器错误: ${response.status}`);
                 }
                 return response.json();
             })
             .then(data => {
-                if (!data) return; 
+                if (!data || !data.tickets) return; 
 
                 loadingMessage.style.display = 'none';
                 table.style.display = 'table';
                 tbody.innerHTML = ''; 
 
-                if (data.tickets && data.tickets.length > 0) {
+                if (data.tickets.length > 0) {
                     data.tickets.forEach(ticket => {
-                      
-                        const date = new Date(ticket.submitted_at);
+                        const date = new Date(ticket.submitted_at || ticket.created_at);
                         const formattedDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
-
                       
                         const row = `
                             <tr>
@@ -141,11 +170,9 @@
                                 <td class="message-cell">${escapeHTML(ticket.message)}</td>
                             </tr>
                         `;
-                       
                         tbody.innerHTML += row;
                     });
                 } else {
-                   
                     table.style.display = 'none';
                     loadingMessage.textContent = '当前没有工单。';
                     loadingMessage.style.display = 'block';
@@ -156,21 +183,32 @@
                 loadingMessage.textContent = '无法加载数据，请检查服务器连接或重新登录。';
                 loadingMessage.style.color = '#FF4F4F';
             });
-    }
+        }
 
-    
-    function escapeHTML(str) {
-        if (typeof str !== 'string') return '';
-        return str.replace(/[&<>'"]/g, 
-            tag => ({
-                '&': '&amp;',
-                '<': '&lt;',
-                '>': '&gt;',
-                "'": '&#39;',
-                '"': '&quot;'
-            }[tag] || tag)
-        );
-    }
+        // 辅助函数: 对 HTML 特殊字符进行转义，防止 XSS (跨站脚本) 攻击
+        function escapeHTML(str) {
+            if (typeof str !== 'string') return '';
+            return str.replace(/[&<>'"]/g, 
+                tag => ({
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    "'": '&#39;',
+                    '"': '&quot;'
+                }[tag] || tag)
+            );
+        }
+
+        // 为登出按钮添加事件监听
+        document.getElementById('logoutLink').addEventListener('click', (event) => {
+            event.preventDefault(); // 阻止链接的默认跳转行为
+            
+            // 清除保存在 sessionStorage 中的管理员 token
+            sessionStorage.removeItem('adminAccessToken');
+            
+            // 跳转回后台登录页面
+            window.location.href = '/login.html';
+        });
     </script>
 </body>
 </html>
