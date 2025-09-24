@@ -1,6 +1,6 @@
 // =======================================================
 // server.js - 最终、完整、未经省略的版本
-// 新增: 两步式注册流程 (发送验证码 + 验证并注册)
+// 新增: 在注册时收集并验证唯一的用户名
 // =======================================================
 
 // 1. 导入所有必需的模块
@@ -57,14 +57,13 @@ app.use(express.static(path.join(__dirname, 'public')));
 // 8. API 路由定义
 // =======================================================
 
-// --- 【新增】API: 发送注册验证码 ---
+// --- API: 发送注册验证码 ---
 app.post('/api/send-code', async (req, res) => {
     try {
         const { email, 'cf-turnstile-response': turnstileToken } = req.body;
         if (!email || !turnstileToken) {
             return res.status(400).json({ error: '邮箱和人机验证为必填项' });
         }
-
         const turnstileResponse = await fetch('https://challenges.cloudflare.com/turnstile/v2/siteverify', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -74,25 +73,21 @@ app.post('/api/send-code', async (req, res) => {
         if (!turnstileData.success) {
             return res.status(403).json({ error: '人机验证失败，请刷新重试' });
         }
-
-        const { data: { users }, error: userError } = await supabase.auth.admin.listUsers({ maxResults: 1, page: 1 });
+        const { data: { users } } = await supabase.auth.admin.listUsers({ maxResults: 1000 }); // Note: In production, consider more efficient ways to check for existing users if you have many.
         const userExists = users.some(user => user.email === email);
         if (userExists) {
             return res.status(400).json({ error: '该邮箱已被注册，请直接登录' });
         }
-        
         const verificationCode = crypto.randomInt(100000, 999999).toString();
         const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
         const { error: insertError } = await supabase.from('verification_codes').insert({ email, code: verificationCode, expires_at: expiresAt });
         if (insertError) throw insertError;
-
         await resend.emails.send({
             from: 'TribitHub <message@tribit.top>',
             to: [email],
             subject: `您的 TribitHub 注册验证码是 ${verificationCode}`,
             html: `<div style="font-family: Arial, sans-serif; text-align: center; padding: 20px;"><h2>您的验证码</h2><p>请在注册页面输入以下验证码以完成注册：</p><p style="font-size: 32px; font-weight: bold; letter-spacing: 5px; margin: 20px 0;">${verificationCode}</p><p>此验证码将在15分钟后失效。</p></div>`,
         });
-
         res.status(200).json({ message: '验证码已成功发送至您的邮箱！' });
     } catch (error) {
         console.error('/api/send-code 接口错误:', error);
@@ -100,32 +95,32 @@ app.post('/api/send-code', async (req, res) => {
     }
 });
 
-// --- 【已重写】API: 用户注册 (使用验证码) ---
+// --- API: 用户注册 (包含用户名) ---
 app.post('/api/register', async (req, res) => {
     try {
-        const { email, code, password, 'cf-turnstile-response': turnstileToken } = req.body;
-        if (!email || !code || !password || !turnstileToken) {
+        const { username, email, code, password, 'cf-turnstile-response': turnstileToken } = req.body;
+        if (!username || !email || !code || !password || !turnstileToken) {
             return res.status(400).json({ error: '所有字段均为必填项' });
         }
-        
+        const { data: existingProfile } = await supabase.from('profiles').select('username').eq('username', username).single();
+        if (existingProfile) {
+            return res.status(400).json({ error: '该用户名已被使用，请换一个' });
+        }
         const { data: codes, error: selectError } = await supabase.from('verification_codes').select('*').eq('email', email).order('expires_at', { ascending: false }).limit(1);
         if (selectError) throw selectError;
-
         const record = codes && codes[0];
         if (!record || record.code !== code || new Date() > new Date(record.expires_at)) {
             return res.status(400).json({ error: '验证码不正确或已过期' });
         }
-
-        const { data: createData, error: createError } = await supabase.auth.admin.createUser({
-            email, password, email_confirm: true
+        const { error: createError } = await supabase.auth.admin.createUser({
+            email, password, email_confirm: true,
+            user_metadata: { username: username }
         });
         if (createError) {
              if (createError.message.includes('already exists')) return res.status(400).json({ error: '该邮箱已被注册' });
             throw createError;
         }
-
         await supabase.from('verification_codes').delete().eq('id', record.id);
-
         res.status(200).json({ message: '恭喜您，注册成功！即将跳转到登录页面。' });
     } catch (error) {
         console.error('/api/register 接口错误:', error);

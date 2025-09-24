@@ -28,19 +28,17 @@
                     <div class="brand header-brand">
                         <h1 class="m-0">
                             <a href="index.html">
-                             
                                 <span class="header-brand-text">TribitHub</span>
                             </a>
                         </h1>
                     </div>
                     <ul class="header-links list-reset">
                         <li><a href="index.html">首页</a></li>
-       
                         <li><a href="pricing.html">查看我们的介绍</a></li>
                         <li><a href="contact.html">联系我们</a></li>
+                        <!-- 这个链接现在会被 auth-ui.js 动态替换 -->
                         <li><a href="login-user.html">注册/登录</a></li>
                         
-
                         <li class="theme-switch-wrapper">
                             <label class="theme-switch" for="theme-toggle-checkbox">
                                 <input type="checkbox" id="theme-toggle-checkbox" />
@@ -64,10 +62,8 @@
 	                        <h1 class="hero-title mt-0">TribitHub - 您的专属Minecraft定制工坊</h1>
 	                        <p class="hero-paragraph">我们为您的Minecraft服务器提供专业、高效的插件定制和精美的网站开发服务，用代码构筑您的创意，让服务器独一无二。</p>
 	                        <div class="hero-cta">
-                           
                                 <a class="button button-primary" href="pricing.html">查看我们的介绍</a>
                                 <a class="button" href="contact.html">立即联系</a>
-                                
                             </div>
 						</div>
 						<div class="hero-figure anime-element">
@@ -86,7 +82,6 @@
                     </div>
                 </div>
             </section>
-
           
             <section id="features-section" class="features section">
                 <div class="container">
@@ -96,16 +91,15 @@
                     </div>
                     <div class="container-sm">
                         <p class="section-paragraph text-left">
-                            <strong>技术卓越：</strong> 我们坚信，优质的服务根植于强大的技术实力。我们编写的每一行代码都追求匠心品质，确保高效、稳定且易于维护，为您的服务器奠定坚实的技术基石。我们对性能有极致的追求，通过精细的算法与架构优化，保障您的服务器在高负载下依然流畅如飞。同时，您的数据与服务器安全是我们的首要任务，我们构建坚实的安全保障，防范任何潜在风险。
+                            <strong>技术卓越：</strong> 我们坚信，优质的服务根植于强大的技术实力。我们编写的每一行代码都追求匠心品质，确保高效、稳定且易于维护，为您的服务器奠定坚实的技术基石。
                         </p>
                         <p class="section-paragraph text-left">
-                            <strong>体验至上：</strong> 我们的合作不止于交付代码。我们提供现代化、人性化的设计与用户体验，并以完全透明的开发流程与您协作，确保项目进展清晰可见。从初次沟通到最终交付，我们都致力于为您提供顺畅无忧的定制体验，并承诺提供可靠的长期技术支持，成为您值得信赖的伙伴。
+                            <strong>体验至上：</strong> 我们的合作不止于交付代码。我们提供现代化、人性化的设计与用户体验，并以完全透明的开发流程与您协作，确保项目进展清晰可见。
                         </p>
                     </div>
                 </div>
             </section>
 
-            
             <section class="process section">
                 <div class="container">
                     <div class="section-header text-center">
@@ -129,12 +123,9 @@
                     </div>
                 </div>
             </section>
-
-		
 		
         </main>
 
-     
         <footer class="site-footer-minimal">
             <div class="container">
                 <div class="footer-copyright">
@@ -145,11 +136,13 @@
        
     </div>
 
-
     <script src="dist/js/main.min.js"></script>
 
+    <!-- 【关键新增】引入我们的全局认证 UI 脚本 -->
+    <script src="dist/js/auth-ui.js" defer></script>
  
     <script>
+        // 主题切换逻辑保持不变
         const toggleSwitch = document.getElementById('theme-toggle-checkbox');
         const docElement = document.documentElement;
         if (docElement.classList.contains('light-theme')) {
