@@ -4,31 +4,44 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>创建账户 - TribitHub</title>
+    
+    <!-- 1. 链接到您的主样式表，它包含了所有基础样式和主题变量 -->
     <link rel="stylesheet" href="dist/css/style.css">
+    
+    <!-- 2. 内联脚本，用于在页面加载时立即应用主题，防止亮色/暗色主题闪烁 -->
+    <script>
+        (function() {
+            const theme = localStorage.getItem('theme');
+            if (theme === 'light') {
+                document.documentElement.classList.add('light-theme');
+            }
+        })();
+    </script>
+
+    <!-- 3. 针对此页面的专属样式，已完全适配亮暗模式变量 -->
     <style>
-        /* 复用您之前截图中的现代风格样式 */
         body { 
             display: flex; 
             align-items: center; 
             justify-content: center; 
             min-height: 100vh; 
-            background-color: #f4f7f9; 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
         }
         .register-container { 
             max-width: 420px; 
             width: 100%; 
             padding: 40px; 
-            background-color: #ffffff; 
+            background-color: var(--bg-card); 
+            border: 1px solid var(--border-color);
             border-radius: 8px; 
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1); 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2); 
+            transition: background-color 0.3s ease, border-color 0.3s ease;
         }
         .register-title { 
             text-align: center; 
             margin-bottom: 30px; 
             font-size: 28px; 
             font-weight: 700;
-            color: #111; 
+            color: var(--text-primary); 
         }
         .field {
             margin-bottom: 20px;
@@ -37,24 +50,11 @@
             display: block; 
             margin-bottom: 8px; 
             font-weight: 600; 
-            color: #333; 
+            color: var(--text-primary); 
             font-size: 14px;
         }
         .input-group { 
             position: relative; 
-        }
-        .input { 
-            width: 100%; 
-            padding: 12px; 
-            border: 1px solid #ddd; 
-            border-radius: 4px; 
-            box-sizing: border-box; /* 确保 padding 不会撑大宽度 */
-            font-size: 14px;
-        }
-        .input:focus { 
-            border-color: #6c63ff; 
-            outline: none; 
-            box-shadow: 0 0 0 2px rgba(108, 99, 255, 0.2);
         }
         #sendCodeBtn { 
             position: absolute; 
@@ -66,38 +66,17 @@
             padding: 0 15px; 
             border-radius: 0 4px 4px 0; 
             cursor: pointer; 
-            color: #6c63ff; 
+            color: var(--accent-glow); 
             font-weight: 600;
+            transition: color 0.2s;
         }
         #sendCodeBtn:disabled { 
             cursor: not-allowed; 
-            color: #999; 
+            color: var(--text-secondary); 
         }
-        .status-message { 
-            text-align: center; 
-            margin: 15px 0; 
-            font-size: 14px; 
-            min-height: 20px; 
-            line-height: 1.4; 
-            color: #e74c3c; 
-        }
+        /* status-message, success-message, error-message 的样式已在 style.css 中定义 */
         .cf-turnstile { 
             margin: 20px 0; 
-        }
-        .button-primary { 
-            background-color: #6c63ff; 
-            border: none; 
-            color: white; 
-            width: 100%; 
-            padding: 14px; 
-            font-size: 16px; 
-            font-weight: 600;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-        .button-primary:hover {
-            background-color: #5750d6;
         }
         .login-link {
             text-align: center; 
@@ -105,7 +84,7 @@
             font-size: 14px;
         }
         .login-link a {
-            color: #6c63ff;
+            color: var(--accent-glow);
             text-decoration: none;
             font-weight: 600;
         }
@@ -120,12 +99,10 @@
                 <label class="field-label" for="username">用户名</label>
                 <input id="username" class="input" type="text" name="username" placeholder="这将是您的公开昵称" required>
             </div>
-
             <div class="field">
                 <label class="field-label" for="email">电子邮箱</label>
                 <input id="email" class="input" type="email" name="email" placeholder="用于接收验证码" required>
             </div>
-
             <div class="field">
                 <label class="field-label" for="code">邮箱验证码</label>
                 <div class="input-group">
@@ -133,18 +110,16 @@
                     <button type="button" id="sendCodeBtn">发送验证码</button>
                 </div>
             </div>
-
             <div class="field">
                 <label class="field-label" for="password">设置密码 (至少6位)</label>
                 <input id="password" class="input" type="password" name="password" placeholder="设置您的密码" required minlength="6">
             </div>
-
             <div class="field">
                 <label class="field-label" for="confirmPassword">确认密码</label>
                 <input id="confirmPassword" class="input" type="password" name="confirmPassword" placeholder="再次输入密码" required>
             </div>
             
-            <div class="cf-turnstile" data-sitekey="YOUR_CLOUDFLARE_SITE_KEY" data-theme="light"></div>
+            <div class="cf-turnstile" data-sitekey="YOUR_CLOUDFLARE_SITE_KEY"></div>
             
             <div id="statusMessage" class="status-message"></div>
 
@@ -160,9 +135,12 @@
     <script>
         // =======================================================
         // register.html - 最终、完整、未经省略的客户端脚本
-        // 实现了包含用户名的两步式注册流程
         // =======================================================
         
+        // --- 动态设置 Cloudflare Turnstile 的主题 ---
+        const currentTheme = localStorage.getItem('theme') || 'dark';
+        document.querySelector('.cf-turnstile').setAttribute('data-theme', currentTheme);
+
         const form = document.getElementById('registerForm');
         const sendCodeBtn = document.getElementById('sendCodeBtn');
         const statusMessage = document.getElementById('statusMessage');
@@ -174,19 +152,23 @@
 
             if (!email) {
                 statusMessage.textContent = '请输入您的邮箱地址。';
+                statusMessage.className = 'status-message error-message';
                 return;
             }
             if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
                 statusMessage.textContent = '请输入有效的邮箱格式。';
+                statusMessage.className = 'status-message error-message';
                 return;
             }
             if (!turnstileToken) {
                 statusMessage.textContent = '人机验证未完成，请稍候。';
+                statusMessage.className = 'status-message error-message';
                 return;
             }
 
             sendCodeBtn.disabled = true;
             statusMessage.textContent = '正在发送验证码...';
+            statusMessage.className = 'status-message';
             
             try {
                 const response = await fetch('/api/send-code', {
@@ -198,7 +180,7 @@
                 if (!response.ok) throw new Error(result.error || '发送失败，请重试');
 
                 statusMessage.textContent = result.message;
-                statusMessage.style.color = '#2ecc71'; // 成功消息用绿色
+                statusMessage.className = 'status-message success-message';
                 
                 let countdown = 60;
                 sendCodeBtn.textContent = `${countdown}s`;
@@ -214,7 +196,7 @@
 
             } catch (error) {
                 statusMessage.textContent = error.message;
-                statusMessage.style.color = '#e74c3c'; // 错误消息用红色
+                statusMessage.className = 'status-message error-message';
                 sendCodeBtn.disabled = false;
             }
         });
@@ -232,11 +214,12 @@
 
             if (password !== confirmPassword) {
                 statusMessage.textContent = '两次输入的密码不一致。';
+                statusMessage.className = 'status-message error-message';
                 return;
             }
 
             statusMessage.textContent = '正在注册...';
-            statusMessage.style.color = '#333';
+            statusMessage.className = 'status-message';
 
             try {
                 const response = await fetch('/api/register', {
@@ -252,7 +235,7 @@
 
             } catch (error) {
                 statusMessage.textContent = error.message;
-                statusMessage.style.color = '#e74c3c';
+                statusMessage.className = 'status-message error-message';
             }
         });
     </script>
