@@ -1,6 +1,6 @@
 // =======================================================
 // server.js - 最终、完整、未经省略的版本
-// 新增: 优化了注册验证邮件的 HTML 样式
+// 新增: 两步式注册流程 (发送验证码 + 验证并注册)
 // =======================================================
 
 // 1. 导入所有必需的模块
@@ -57,13 +57,14 @@ app.use(express.static(path.join(__dirname, 'public')));
 // 8. API 路由定义
 // =======================================================
 
-// --- API: 用户注册 (发送精美样式的6位数验证码邮件) ---
-app.post('/api/register', async (req, res) => {
+// --- 【新增】API: 发送注册验证码 ---
+app.post('/api/send-code', async (req, res) => {
     try {
-        const { email, password, 'cf-turnstile-response': turnstileToken } = req.body;
-        if (!email || !password || !turnstileToken) {
-            return res.status(400).json({ error: '缺少必要信息' });
+        const { email, 'cf-turnstile-response': turnstileToken } = req.body;
+        if (!email || !turnstileToken) {
+            return res.status(400).json({ error: '邮箱和人机验证为必填项' });
         }
+
         const turnstileResponse = await fetch('https://challenges.cloudflare.com/turnstile/v2/siteverify', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -71,74 +72,67 @@ app.post('/api/register', async (req, res) => {
         });
         const turnstileData = await turnstileResponse.json();
         if (!turnstileData.success) {
-            return res.status(403).json({ error: '人机验证失败' });
+            return res.status(403).json({ error: '人机验证失败，请刷新重试' });
         }
-        const { error: createError } = await supabase.auth.admin.createUser({
-            email, password, email_confirm: false
-        });
-        if (createError) {
-            if (createError.message.includes('already exists')) return res.status(400).json({ error: '该邮箱已被注册' });
-            throw createError;
+
+        const { data: { users }, error: userError } = await supabase.auth.admin.listUsers({ maxResults: 1, page: 1 });
+        const userExists = users.some(user => user.email === email);
+        if (userExists) {
+            return res.status(400).json({ error: '该邮箱已被注册，请直接登录' });
         }
+        
         const verificationCode = crypto.randomInt(100000, 999999).toString();
         const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
         const { error: insertError } = await supabase.from('verification_codes').insert({ email, code: verificationCode, expires_at: expiresAt });
         if (insertError) throw insertError;
 
-        // --- 【邮件样式升级】使用专业的 HTML 模板 ---
         await resend.emails.send({
             from: 'TribitHub <message@tribit.top>',
             to: [email],
-            subject: `您的 TribitHub 验证码是 ${verificationCode}`,
-            html: `
-            <div style="font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif; box-sizing: border-box; background-color: #f9f9f9; width: 100%; padding: 20px;">
-              <div style="box-sizing: border-box; max-width: 600px; margin: 40px auto; padding: 40px; background-color: #ffffff; border: 1px solid #e9e9e9; border-radius: 5px;">
-                <div style="text-align: center; margin-bottom: 20px;">
-                  <h1 style="font-size: 24px; font-weight: bold; color: #333; margin: 0;">TribitHub</h1>
-                </div>
-                <h2 style="font-size: 20px; color: #333; text-align: center;">验证您的电子邮箱</h2>
-                <p style="font-size: 16px; color: #555;">你好 ${email},</p>
-                <p style="font-size: 16px; color: #555;">我们收到了您的注册请求。要完成验证过程，请在原始窗口中输入这 6 位代码：</p>
-                <div style="text-align: center; margin: 30px 0;">
-                  <div style="background-color: #f0f0f0; border-radius: 5px; display: inline-block; padding: 15px 25px;">
-                    <span style="font-size: 36px; font-weight: bold; letter-spacing: 10px; color: #333; line-height: 1;">${verificationCode}</span>
-                  </div>
-                </div>
-                <p style="font-size: 14px; color: #888;">此验证码将在 15 分钟后失效。</p>
-                <hr style="border: none; border-top: 1px solid #eaeaea; margin: 26px 0;">
-                <p style="font-size: 12px; color: #888;">如果您未尝试注册，请忽略此邮件。请勿与任何人分享此验证码。</p>
-              </div>
-            </div>
-            `,
+            subject: `您的 TribitHub 注册验证码是 ${verificationCode}`,
+            html: `<div style="font-family: Arial, sans-serif; text-align: center; padding: 20px;"><h2>您的验证码</h2><p>请在注册页面输入以下验证码以完成注册：</p><p style="font-size: 32px; font-weight: bold; letter-spacing: 5px; margin: 20px 0;">${verificationCode}</p><p>此验证码将在15分钟后失效。</p></div>`,
         });
 
-        res.status(200).json({ message: '注册请求成功，请查收验证码邮件。' });
+        res.status(200).json({ message: '验证码已成功发送至您的邮箱！' });
     } catch (error) {
-        console.error('/api/register 接口错误:', error);
-        res.status(500).json({ error: '服务器内部错误' });
+        console.error('/api/send-code 接口错误:', error);
+        res.status(500).json({ error: '发送验证码失败，请稍后重试' });
     }
 });
 
-// --- API: 验证邮箱验证码 ---
-app.post('/api/verify-code', async (req, res) => {
+// --- 【已重写】API: 用户注册 (使用验证码) ---
+app.post('/api/register', async (req, res) => {
     try {
-        const { email, code } = req.body;
-        if (!email || !code) return res.status(400).json({ error: '邮箱和验证码不能为空' });
+        const { email, code, password, 'cf-turnstile-response': turnstileToken } = req.body;
+        if (!email || !code || !password || !turnstileToken) {
+            return res.status(400).json({ error: '所有字段均为必填项' });
+        }
+        
         const { data: codes, error: selectError } = await supabase.from('verification_codes').select('*').eq('email', email).order('expires_at', { ascending: false }).limit(1);
         if (selectError) throw selectError;
+
         const record = codes && codes[0];
         if (!record || record.code !== code || new Date() > new Date(record.expires_at)) {
-            return res.status(400).json({ error: '验证码无效或已过期' });
+            return res.status(400).json({ error: '验证码不正确或已过期' });
         }
-        const { error: userError } = await supabase.auth.admin.updateUserByEmail(email, { email_confirm: true });
-        if (userError) throw userError;
+
+        const { data: createData, error: createError } = await supabase.auth.admin.createUser({
+            email, password, email_confirm: true
+        });
+        if (createError) {
+             if (createError.message.includes('already exists')) return res.status(400).json({ error: '该邮箱已被注册' });
+            throw createError;
+        }
+
         await supabase.from('verification_codes').delete().eq('id', record.id);
-        res.status(200).json({ message: '邮箱验证成功！' });
+
+        res.status(200).json({ message: '恭喜您，注册成功！即将跳转到登录页面。' });
     } catch (error) {
-        console.error('/api/verify-code 接口错误:', error);
-        res.status(500).json({ error: '服务器内部错误' });
+        console.error('/api/register 接口错误:', error);
+        res.status(500).json({ error: '注册失败，服务器内部错误' });
     }
 });
+
 
 // --- API: 用户密码登录 ---
 app.post('/api/login/password', async (req, res) => {
@@ -148,7 +142,7 @@ app.post('/api/login/password', async (req, res) => {
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) {
             if (error.message === 'Invalid login credentials') return res.status(401).json({ error: '邮箱或密码不正确' });
-            if (error.message.includes('Email not confirmed')) return res.status(401).json({ error: '请先激活您的账号' });
+            if (error.message.includes('Email not confirmed')) return res.status(401).json({ error: '您的账号尚未激活' });
             return res.status(400).json({ error: error.message });
         }
         res.status(200).json({ message: '登录成功', session: data.session });
@@ -191,26 +185,6 @@ app.get('/api/tickets', async (req, res) => {
     } catch (error) {
         console.error('/api/tickets 接口错误:', error);
         res.status(500).json({ error: '获取工单数据失败' });
-    }
-});
-
-// --- API: 用户无密码登录 (魔术链接) - (保留作为备用) ---
-app.post('/api/auth', async (req, res) => {
-    try {
-        const { email } = req.body;
-        if (!email) return res.status(400).json({ error: 'Email is required' });
-        const { data, error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: `${siteUrl}/dashboard.html` } });
-        if (error) throw error;
-        const magicLink = data.properties.action_link;
-        if (!magicLink) return res.status(500).json({ error: '无法生成登录链接' });
-        await resend.emails.send({
-            from: 'TribitHub <message@tribit.top>', to: [email], subject: '您的 TribitHub 登录链接',
-            html: `<p>点击此链接登录: <a href="${magicLink}">安全登录</a></p>`,
-        });
-        res.status(200).json({ message: '登录链接已发送' });
-    } catch (error) {
-        console.error('/api/auth 接口错误:', error);
-        res.status(500).json({ error: '发送邮件时发生内部错误' });
     }
 });
 

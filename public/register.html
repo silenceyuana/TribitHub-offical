@@ -3,122 +3,146 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>注册 - TribitHub</title>
+    <title>创建账户 - TribitHub</title>
     <link rel="stylesheet" href="dist/css/style.css">
     <style>
-        body { 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            min-height: 100vh; 
-            background-color: #15181D; 
-        }
-        .login-container { 
-            max-width: 400px; 
-            width: 100%; 
-            padding: 32px; 
-            background-color: #1D2026; 
-            border-radius: 4px; 
-        }
-        .login-title { 
-            text-align: center; 
-            margin-bottom: 24px; 
-        }
-        .status-message { 
-            text-align: center; 
-            margin-bottom: 16px; 
-            font-size: 14px; 
-            min-height: 20px; 
-            line-height: 1.4;
-        }
-        .success-message { color: #02CB6A; }
-        .error-message { color: #FF4F4F; }
-        .cf-turnstile { margin-bottom: 16px; }
+        body { display: flex; align-items: center; justify-content: center; min-height: 100vh; background-color: #f4f7f9; }
+        .register-container { max-width: 420px; width: 100%; padding: 40px; background-color: #ffffff; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+        .register-title { text-align: center; margin-bottom: 30px; font-size: 28px; color: #333; }
+        .field-label { display: block; margin-bottom: 8px; font-weight: 600; color: #555; }
+        .input-group { position: relative; }
+        .input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 4px; }
+        .input:focus { border-color: #6c63ff; outline: none; }
+        #sendCodeBtn { position: absolute; right: 1px; top: 1px; bottom: 1px; border: none; background-color: #f0f0f0; padding: 0 15px; border-radius: 0 4px 4px 0; cursor: pointer; color: #6c63ff; }
+        #sendCodeBtn:disabled { cursor: not-allowed; color: #999; }
+        .status-message { text-align: center; margin: 15px 0; font-size: 14px; min-height: 20px; line-height: 1.4; color: #e74c3c; }
+        .cf-turnstile { margin: 20px 0; }
+        .button-primary { background-color: #6c63ff; border-color: #6c63ff; color: white; width: 100%; padding: 14px; font-size: 16px; }
     </style>
-
-    <!-- 
-      【关键修复】
-      确保这里的 src 是一个完整的、以 "https://" 开头的 URL，
-      而不是一个相对路径 "api.js"。
-    -->
     <script src="https://challenges.cloudflare.com/turnstile/v2/api.js" async defer></script>
-
 </head>
 <body>
-    <div class="login-container">
-        <h1 class="h3 login-title">创建 TribitHub 账号</h1>
-        
-        <div id="statusMessage" class="status-message"></div>
-
+    <div class="register-container">
+        <h1 class="register-title">创建账户</h1>
         <form id="registerForm">
             <div class="field">
-                <div class="control">
-                    <input class="input" type="email" name="email" placeholder="请输入您的邮箱" required>
+                <label class="field-label" for="email">电子邮箱</label>
+                <input id="email" class="input" type="email" name="email" placeholder="用于接收验证码" required>
+            </div>
+            <div class="field">
+                <label class="field-label" for="code">邮箱验证码</label>
+                <div class="input-group">
+                    <input id="code" class="input" type="text" name="code" placeholder="6位数字" required pattern="\d{6}" maxlength="6">
+                    <button type="button" id="sendCodeBtn">发送验证码</button>
                 </div>
             </div>
             <div class="field">
-                <div class="control">
-                    <input class="input" type="password" name="password" placeholder="设置密码 (至少6位)" required minlength="6">
-                </div>
+                <label class="field-label" for="password">设置密码 (至少6位)</label>
+                <input id="password" class="input" type="password" name="password" placeholder="设置您的密码" required minlength="6">
+            </div>
+            <div class="field">
+                <label class="field-label" for="confirmPassword">确认密码</label>
+                <input id="confirmPassword" class="input" type="password" name="confirmPassword" placeholder="再次输入密码" required>
             </div>
             
-            <!-- Cloudflare Turnstile 人机验证部件 -->
-            <!-- 请确保将 data-sitekey 替换为您自己的 Site Key -->
-            <div class="cf-turnstile" data-sitekey="0x4AAAAAAB2uPC06kic3J2j3" data-theme="dark"></div>
+            <div class="cf-turnstile" data-sitekey="0x4AAAAAAB2uPC06kic3J2j3" data-theme="light"></div>
+            
+            <div id="statusMessage" class="status-message"></div>
 
             <div class="field">
-                <div class="control">
-                    <button class="button button-primary button-block" type="submit">注册</button>
-                </div>
+                <button class="button button-primary" type="submit">立即注册</button>
             </div>
         </form>
-        <p style="text-align: center; margin-top: 16px; font-size: 14px;">
-            已有账号？ <a href="/login-user.html">立即登录</a>
+        <p style="text-align: center; margin-top: 20px; font-size: 14px;">
+            已有账户？ <a href="/login-user.html">直接登录</a>
         </p>
     </div>
 
     <script>
-        // 表单提交逻辑 (这部分无需修改)
-        document.getElementById('registerForm').addEventListener('submit', async function(event) {
-            event.preventDefault();
-            const form = event.target;
-            const email = form.email.value;
-            const password = form.password.value;
-            const turnstileToken = form['cf-turnstile-response'].value;
-            const statusMessage = document.getElementById('statusMessage');
-            const submitButton = form.querySelector('button');
+        const form = document.getElementById('registerForm');
+        const sendCodeBtn = document.getElementById('sendCodeBtn');
+        const statusMessage = document.getElementById('statusMessage');
 
-            statusMessage.textContent = '正在处理，请稍候...';
-            statusMessage.className = 'status-message';
-            submitButton.disabled = true;
+        // --- “发送验证码”按钮的逻辑 ---
+        sendCodeBtn.addEventListener('click', async () => {
+            const email = form.email.value;
+            const turnstileToken = form['cf-turnstile-response'].value;
+
+            if (!email) {
+                statusMessage.textContent = '请输入您的邮箱地址。';
+                return;
+            }
+            if (!turnstileToken) {
+                statusMessage.textContent = '人机验证失败，请刷新重试。';
+                return;
+            }
+
+            // 禁用按钮并开始倒计时
+            sendCodeBtn.disabled = true;
+            statusMessage.textContent = '正在发送...';
+            
+            try {
+                const response = await fetch('/api/send-code', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, 'cf-turnstile-response': turnstileToken }),
+                });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.error || '发送失败');
+
+                statusMessage.textContent = result.message;
+                
+                // 开始60秒倒计时
+                let countdown = 60;
+                sendCodeBtn.textContent = `${countdown}s`;
+                const interval = setInterval(() => {
+                    countdown--;
+                    sendCodeBtn.textContent = `${countdown}s`;
+                    if (countdown <= 0) {
+                        clearInterval(interval);
+                        sendCodeBtn.textContent = '重新发送';
+                        sendCodeBtn.disabled = false;
+                    }
+                }, 1000);
+
+            } catch (error) {
+                statusMessage.textContent = error.message;
+                sendCodeBtn.disabled = false;
+            }
+        });
+
+        // --- “立即注册”表单的提交逻辑 ---
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const formData = new FormData(form);
+            const email = formData.get('email');
+            const code = formData.get('code');
+            const password = formData.get('password');
+            const confirmPassword = formData.get('confirmPassword');
+            const turnstileToken = formData.get('cf-turnstile-response');
+
+            if (password !== confirmPassword) {
+                statusMessage.textContent = '两次输入的密码不一致。';
+                return;
+            }
+
+            statusMessage.textContent = '正在注册...';
 
             try {
                 const response = await fetch('/api/register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        email: email, 
-                        password: password,
-                        'cf-turnstile-response': turnstileToken
-                    }),
+                    body: JSON.stringify({ email, code, password, 'cf-turnstile-response': turnstileToken }),
                 });
-                
                 const result = await response.json();
-                if (!response.ok) {
-                    throw new Error(result.error || '发生未知错误，请重试');
-                }
+                if (!response.ok) throw new Error(result.error || '注册失败');
 
-                sessionStorage.setItem('registeredEmail', email);
-                window.location.href = '/verify-email.html';
+                // 注册成功
+                alert(result.message); // 弹窗提示成功
+                window.location.href = '/login-user.html'; // 跳转到登录页
 
             } catch (error) {
                 statusMessage.textContent = error.message;
-                statusMessage.classList.add('error-message');
-                if (window.turnstile) {
-                    window.turnstile.reset();
-                }
-            } finally {
-                submitButton.disabled = false;
             }
         });
     </script>
