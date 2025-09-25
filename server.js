@@ -1,6 +1,6 @@
 // =======================================================
 // server.js - 最终、完整、未经省略的版本
-// 修正: 管理员登录时使用 Admin 客户端查询角色以绕过 RLS
+// 修正: 管理员后台获取工单列表的查询逻辑
 // =======================================================
 
 // 1. 导入所有必需的模块
@@ -36,15 +36,9 @@ const InMemoryStorage = {
 };
 
 // 5. 配置 Supabase 客户端
-// a) 普通客户端，用于处理常规的用户认证
 const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-    auth: {
-        storage: InMemoryStorage,
-        persistSession: false,
-        autoRefreshToken: false,
-    }
+    auth: { storage: InMemoryStorage, persistSession: false, autoRefreshToken: false }
 });
-// b) 【关键】专门的 Admin 客户端，它将绕过所有 RLS 策略进行查询
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 const resend = new Resend(resendApiKey);
 
@@ -59,8 +53,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 // 8. API 路由定义
 // =======================================================
 
-// --- 路由: /admin 直接指向后台登录页 ---
-// 注意：此路由现在由 vercel.json 处理，保留在此处用于本地开发
+// --- 路由: /admin 直接指向后台登录页 (由 vercel.json 处理，保留用于本地开发) ---
 app.get('/admin', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
@@ -79,7 +72,7 @@ app.post('/api/send-code', async (req, res) => {
         await supabase.from('verification_codes').insert({ email, code: verificationCode, expires_at: expiresAt });
         await resend.emails.send({
             from: 'TribitHub <message@tribit.top>', to: [email], subject: `您的 TribitHub 注册验证码是 ${verificationCode}`,
-            html: `<div style="font-family: Arial, sans-serif; text-align: center; padding: 20px;"><h2>您的验证码</h2><p>验证码是: <strong>${verificationCode}</strong></p></div>`,
+            html: `<p>您的验证码是: <strong>${verificationCode}</strong></p>`,
         });
         res.status(200).json({ message: '验证码已发送！' });
     } catch (error) {
@@ -116,10 +109,7 @@ app.post('/api/login/password', async (req, res) => {
         const { email, password } = req.body;
         if (!email || !password) return res.status(400).json({ error: '邮箱和密码不能为空' });
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) {
-            if (error.message === 'Invalid login credentials') return res.status(401).json({ error: '邮箱或密码不正确' });
-            return res.status(400).json({ error: error.message });
-        }
+        if (error) return res.status(401).json({ error: '邮箱或密码不正确' });
         res.status(200).json({ message: '登录成功', session: data.session });
     } catch (error) {
         console.error('/api/login/password 接口错误:', error);
@@ -134,46 +124,13 @@ app.post('/login', async (req, res) => {
         if (!email || !password) return res.status(400).json({ error: '邮箱和密码不能为空' });
         const { data: authData, error: authError } = await supabase.auth.signInWithPassword({ email, password });
         if (authError || !authData.user) return res.status(401).json({ error: '邮箱或密码不正确' });
-        
-        // 【关键修正】使用 supabaseAdmin 客户端来查询角色，这将绕过 RLS
-        const { data: profile, error: profileError } = await supabaseAdmin
-            .from('profiles')
-            .select('role')
-            .eq('id', authData.user.id)
-            .single();
-            
-        if (profileError || !profile) {
-            return res.status(500).json({ error: '无法获取用户角色信息' });
-        }
-        if (profile.role !== 'admin') {
-            return res.status(403).json({ error: '权限不足，禁止访问' });
-        }
+        const { data: profile, error: profileError } = await supabaseAdmin.from('profiles').select('role').eq('id', authData.user.id).single();
+        if (profileError || !profile) return res.status(500).json({ error: '无法获取用户角色信息' });
+        if (profile.role !== 'admin') return res.status(403).json({ error: '权限不足' });
         res.status(200).json({ message: '管理员登录成功', accessToken: authData.session.access_token });
     } catch (error) {
         console.error('/login 接口错误:', error);
-        res.status(500).json({ error: '管理员登录失败，服务器内部错误' });
-    }
-});
-
-// --- API: 管理员获取工单列表 (Token保护) ---
-app.get('/api/tickets', async (req, res) => {
-    try {
-        const authHeader = req.headers.authorization;
-        if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ error: '未提供认证令牌' });
-        const token = authHeader.split(' ')[1];
-        const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-        if (userError || !user) return res.status(401).json({ error: '无效的令牌' });
-        const { data: profile } = await supabaseAdmin.from('profiles').select('role').eq('id', user.id).single();
-        if (!profile || profile.role !== 'admin') return res.status(403).json({ error: '权限不足' });
-        const { data: tickets, error: ticketsError } = await supabaseAdmin
-            .from('tickets')
-            .select('id, submitted_at, subject, message, profiles(username), users(email)')
-            .order('submitted_at', { ascending: false });
-        if (ticketsError) throw ticketsError;
-        res.status(200).json({ tickets });
-    } catch (error) {
-        console.error('/api/tickets[GET] 接口错误:', error);
-        res.status(500).json({ error: '获取工单数据失败' });
+        res.status(500).json({ error: '管理员登录失败' });
     }
 });
 
@@ -187,22 +144,49 @@ app.post('/api/tickets', async (req, res) => {
         if (userError || !user) return res.status(401).json({ error: '无效或过期的令牌' });
         const { subject, message } = req.body;
         if (!subject || !message) return res.status(400).json({ error: '主题和内容不能为空' });
-        const { data: newTicket, error: insertError } = await supabase
-            .from('tickets')
-            .insert({ subject, message, user_id: user.id })
-            .select()
-            .single();
+        const { data: newTicket, error: insertError } = await supabase.from('tickets').insert({ subject, message, user_id: user.id }).select().single();
         if (insertError) throw insertError;
         await resend.emails.send({
-            from: 'TribitHub 支持 <message@tribit.top>',
-            to: [user.email],
-            subject: `您的工单 #${newTicket.id} 已收到`,
+            from: 'TribitHub 支持 <message@tribit.top>', to: [user.email], subject: `您的工单 #${newTicket.id} 已收到`,
             html: `<p>你好 ${user.user_metadata.username || ''}, 您的工单已提交成功。</p>`,
         });
         res.status(200).json({ message: '工单提交成功！', ticket: newTicket });
     } catch (error) {
         console.error('提交工单时发生错误 /api/tickets[POST]:', error);
-        res.status(500).json({ error: '服务器内部错误，提交失败' });
+        res.status(500).json({ error: '服务器内部错误' });
+    }
+});
+
+// --- API: 管理员获取工单列表 (使用更可靠的查询) ---
+app.get('/api/tickets', async (req, res) => {
+    try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ error: '未提供认证令牌' });
+        const token = authHeader.split(' ')[1];
+        const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+        if (userError || !user) return res.status(401).json({ error: '无效的令牌' });
+        const { data: profile } = await supabaseAdmin.from('profiles').select('role').eq('id', user.id).single();
+        if (!profile || profile.role !== 'admin') return res.status(403).json({ error: '权限不足' });
+
+        const { data: tickets, error: ticketsError } = await supabaseAdmin.from('tickets').select('*, user_id').order('submitted_at', { ascending: false });
+        if (ticketsError) throw ticketsError;
+
+        if (tickets && tickets.length > 0) {
+            const userIds = [...new Set(tickets.map(t => t.user_id).filter(id => id))];
+            const { data: usersInfo, error: usersError } = await supabaseAdmin.from('profiles').select('id, username, users(email)').in('id', userIds);
+            if (usersError) throw usersError;
+            const userInfoMap = new Map(usersInfo.map(info => [info.id, info]));
+            const ticketsWithUserInfo = tickets.map(ticket => {
+                const userInfo = userInfoMap.get(ticket.user_id);
+                return { ...ticket, name: userInfo?.username || '未知用户', email: userInfo?.users?.email || 'N/A' };
+            });
+            return res.status(200).json({ tickets: ticketsWithUserInfo });
+        }
+        
+        res.status(200).json({ tickets: [] });
+    } catch (error) {
+        console.error('/api/tickets[GET] 接口错误:', error);
+        res.status(500).json({ error: '获取工单数据失败' });
     }
 });
 
