@@ -1,5 +1,6 @@
 // =======================================================
-// server.js - 最终完整版 (已移除 Cloudflare 人机验证)
+// server.js - 最终、完整、未经省略的版本
+// 新增: 需要登录才能提交的工单系统及邮件回执功能
 // =======================================================
 
 // 1. 导入所有必需的模块
@@ -21,6 +22,8 @@ const supabaseUrl = process.env.VITE_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
 const resendApiKey = process.env.RESEND_API_KEY;
 const siteUrl = process.env.SITE_URL;
+// CLOUDFLARE_TURNSTILE_SECRET_KEY is no longer used, but we'll leave the variable here in case you re-enable it.
+const turnstileSecretKey = process.env.CLOUDFLARE_TURNSTILE_SECRET_KEY;
 
 if (!supabaseUrl || !supabaseServiceKey || !resendApiKey || !siteUrl) {
     console.error("错误：一个或多个关键环境变量缺失。请检查 Vercel 项目设置。");
@@ -55,32 +58,32 @@ app.use(express.static(path.join(__dirname, 'public')));
 // 8. API 路由定义
 // =======================================================
 
-// --- API: 发送注册验证码 (无须人机验证) ---
+// --- 路由: /admin 直接指向后台登录页 ---
+app.get('/admin', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'login.html'));
+});
+
+// --- API: 发送注册验证码 ---
 app.post('/api/send-code', async (req, res) => {
     try {
         const { email } = req.body;
         if (!email) {
             return res.status(400).json({ error: '邮箱为必填项' });
         }
-        
         const { data: { users } } = await supabase.auth.admin.listUsers();
         const userExists = users.some(user => user.email === email);
         if (userExists) {
             return res.status(400).json({ error: '该邮箱已被注册，请直接登录' });
         }
-        
         const verificationCode = crypto.randomInt(100000, 999999).toString();
         const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
-        const { error: insertError } = await supabase.from('verification_codes').insert({ email, code: verificationCode, expires_at: expiresAt });
-        if (insertError) throw insertError;
-
+        await supabase.from('verification_codes').insert({ email, code: verificationCode, expires_at: expiresAt });
         await resend.emails.send({
             from: 'TribitHub <message@tribit.top>',
             to: [email],
             subject: `您的 TribitHub 注册验证码是 ${verificationCode}`,
             html: `<div style="font-family: Arial, sans-serif; text-align: center; padding: 20px;"><h2>您的验证码</h2><p>请在注册页面输入以下验证码以完成注册：</p><p style="font-size: 32px; font-weight: bold; letter-spacing: 5px; margin: 20px 0;">${verificationCode}</p><p>此验证码将在15分钟后失效。</p></div>`,
         });
-
         res.status(200).json({ message: '验证码已成功发送至您的邮箱！' });
     } catch (error) {
         console.error('/api/send-code 接口错误:', error);
@@ -88,33 +91,24 @@ app.post('/api/send-code', async (req, res) => {
     }
 });
 
-// --- API: 用户注册 (无须人机验证) ---
+// --- API: 用户注册 (包含用户名) ---
 app.post('/api/register', async (req, res) => {
     try {
         const { username, email, code, password } = req.body;
         if (!username || !email || !code || !password) {
             return res.status(400).json({ error: '所有字段均为必填项' });
         }
-        
         const { data: codes, error: selectError } = await supabase.from('verification_codes').select('*').eq('email', email).order('expires_at', { ascending: false }).limit(1);
         if (selectError) throw selectError;
-
         const record = codes && codes[0];
         if (!record || record.code !== code || new Date() > new Date(record.expires_at)) {
             return res.status(400).json({ error: '验证码不正确或已过期' });
         }
-
-        const { error: createError } = await supabase.auth.admin.createUser({
+        await supabase.auth.admin.createUser({
             email, password, email_confirm: true,
             user_metadata: { username: username }
         });
-        if (createError) {
-             if (createError.message.includes('already exists')) return res.status(400).json({ error: '该邮箱已被注册' });
-            throw createError;
-        }
-
         await supabase.from('verification_codes').delete().eq('id', record.id);
-
         res.status(200).json({ message: '恭喜您，注册成功！即将跳转到登录页面。' });
     } catch (error) {
         console.error('/api/register 接口错误:', error);
@@ -157,6 +151,41 @@ app.post('/login', async (req, res) => {
     }
 });
 
+// --- API: 已登录用户提交新工单 ---
+app.post('/api/tickets', async (req, res) => {
+    try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            return res.status(401).json({ error: '未提供认证令牌' });
+        }
+        const token = authHeader.split(' ')[1];
+        const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+        if (userError || !user) {
+            return res.status(401).json({ error: '无效或过期的令牌' });
+        }
+        const { subject, message } = req.body;
+        if (!subject || !message) {
+            return res.status(400).json({ error: '主题和内容不能为空' });
+        }
+        const { data: newTicket, error: insertError } = await supabase
+            .from('tickets')
+            .insert({ subject, message, user_id: user.id })
+            .select()
+            .single();
+        if (insertError) throw insertError;
+        await resend.emails.send({
+            from: 'TribitHub 支持 <message@tribit.top>',
+            to: [user.email],
+            subject: `您的工单 #${newTicket.id} 已收到`,
+            html: `<div style="font-family: Arial, sans-serif; line-height: 1.6;"><h2>你好 ${user.user_metadata.username || ''},</h2><p>我们已经收到了您提交的工单，正在处理中。这是您的工单详情：</p><div style="border: 1px solid #ddd; padding: 15px; border-radius: 5px; background-color: #f9f9f9;"><p><strong>工单 ID:</strong> ${newTicket.id}</p><p><strong>主题:</strong> ${subject}</p><p><strong>您提交的内容:</strong></p><blockquote style="margin: 0 0 0 15px; border-left: 3px solid #ccc; padding-left: 15px;">${message.replace(/\n/g, '<br>')}</blockquote></div><p>我们的团队会尽快给您答复。</p></div>`,
+        });
+        res.status(200).json({ message: '工单提交成功！', ticket: newTicket });
+    } catch (error) {
+        console.error('提交工单时发生错误 /api/tickets[POST]:', error);
+        res.status(500).json({ error: '服务器内部错误，提交失败' });
+    }
+});
+
 // --- API: 管理员获取工单列表 (Token保护) ---
 app.get('/api/tickets', async (req, res) => {
     try {
@@ -165,13 +194,16 @@ app.get('/api/tickets', async (req, res) => {
         const token = authHeader.split(' ')[1];
         const { data: { user }, error: userError } = await supabase.auth.getUser(token);
         if (userError || !user) return res.status(401).json({ error: '无效的令牌' });
-        const { data: profile, error: profileError } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-        if (profileError || profile.role !== 'admin') return res.status(403).json({ error: '权限不足' });
-        const { data: tickets, error: ticketsError } = await supabase.from('tickets').select('*').order('submitted_at', { ascending: false });
+        const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+        if (profile.role !== 'admin') return res.status(403).json({ error: '权限不足' });
+        const { data: tickets, error: ticketsError } = await supabase
+            .from('tickets')
+            .select('id, submitted_at, subject, message, profiles(username), users(email)')
+            .order('submitted_at', { ascending: false });
         if (ticketsError) throw ticketsError;
         res.status(200).json({ tickets });
     } catch (error) {
-        console.error('/api/tickets 接口错误:', error);
+        console.error('/api/tickets[GET] 接口错误:', error);
         res.status(500).json({ error: '获取工单数据失败' });
     }
 });

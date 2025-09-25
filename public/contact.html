@@ -4,12 +4,13 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>联系我们 - TribitHub</title>
-    <link href="https://fonts.googleapis.com/css?family=IBM+Plex+Sans:400,600" rel="stylesheet">
-    <link rel="icon" href="dist/images/favicon.ico">
+    <title>提交工单 - TribitHub</title>
+    
+    <!-- 1. 链接到您的主样式表 -->
     <link rel="stylesheet" href="dist/css/style.css">
+    
+    <!-- 2. 内联脚本，用于在页面加载时立即应用主题 -->
     <script>
-        // 主题切换的内联脚本，保持不变
         (function() {
             const theme = localStorage.getItem('theme');
             if (theme === 'light') {
@@ -17,12 +18,16 @@
             }
         })();
     </script>
+
+    <!-- 3. 针对此页面的专属样式 -->
     <style>
         .form-status {
             margin-top: 16px;
             font-weight: 600;
             font-size: 16px;
+            min-height: 24px; /* 预留空间防止布局跳动 */
         }
+        /* 成功和错误消息的颜色已在 style.css 中定义 */
     </style>
 </head>
 <body class="is-boxed has-animations">
@@ -40,7 +45,9 @@
                     <ul class="header-links list-reset">
                         <li><a href="index.html">首页</a></li>
                         <li><a href="pricing.html">我们的介绍</a></li>
-                        <li><a href="contact.html">联系我们</a></li>
+                        <li><a href="contact.html">提交工单</a></li>
+                        <!-- 这个链接会被 auth-ui.js 动态替换 -->
+                        <li><a href="login-user.html">注册/登录</a></li>
                     </ul>
                 </div>
             </div>
@@ -51,40 +58,29 @@
                 <div class="container">
                     <div class="section-inner">
                         <div class="section-header text-center">
-                            <h2 class="section-title mt-0">联系我们</h2>
-                            <p class="section-paragraph">有任何想法或需求？请填写下方的表单，我们会在24小时内给您答复。</p>
+                            <h2 class="section-title mt-0">提交新工单</h2>
+                            <p class="section-paragraph">请详细描述您的需求，我们收到后会尽快处理。</p>
                         </div>
                         
                         <div class="contact-wrap">
-                            <div class="contact-form">
+                            <div class="contact-form" style="margin: 0 auto; max-width: 600px;">
                                 <form id="contactForm">
-                                    <div class="field">
-                                        <label class="label screen-reader-text" for="name">您的称呼</label>
-                                        <div class="control">
-                                            <input id="name" class="input" type="text" name="name" placeholder="您的称呼" required>
-                                        </div>
-                                    </div>
-                                    <div class="field">
-                                        <label class="label screen-reader-text" for="email">电子邮件</label>
-                                        <div class="control">
-                                            <input id="email" class="input" type="email" name="email" placeholder="电子邮件" required>
-                                        </div>
-                                    </div>
+                                    <!-- 称呼和邮箱输入框已被移除，因为我们会从登录状态自动获取 -->
                                     <div class="field">
                                         <label class="label screen-reader-text" for="subject">项目主题</label>
                                         <div class="control">
-                                            <input id="subject" class="input" type="text" name="subject" placeholder="项目主题 (例如: '小游戏插件定制')" required>
+                                            <input id="subject" class="input" type="text" name="subject" placeholder="工单主题 (例如: '插件功能建议')" required>
                                         </div>
                                     </div>
                                     <div class="field">
                                         <label class="label screen-reader-text" for="message">需求描述</label>
                                         <div class="control">
-                                            <textarea id="message" class="textarea" name="message" placeholder="请详细描述您的需求..." rows="5" required></textarea>
+                                            <textarea id="message" class="textarea" name="message" placeholder="请在这里详细描述您的问题或需求..." rows="8" required></textarea>
                                         </div>
                                     </div>
                                     <div class="field">
                                         <div class="control">
-                                            <button class="button button-primary button-block" type="submit">发送工单</button>
+                                            <button class="button button-primary button-block" type="submit">确认提交</button>
                                         </div>
                                     </div>
                                 </form>
@@ -96,59 +92,96 @@
             </section>
         </main>
 
-        <footer class="site-footer">
-             <div class="container">
-                <div class="site-footer-inner">
-                     <div class="footer-copyright">&copy; 2025 TribitHub, 版权所有</div>
+        <footer class="site-footer-minimal">
+            <div class="container">
+                <div class="footer-copyright">
+                    &copy; 2025 TribitHub, 版权所有
                 </div>
             </div>
         </footer>
     </div>
+    
+    <!-- 全局认证 UI 脚本，用于处理右上角的用户状态显示 -->
+    <script src="dist/js/auth-ui.js" defer></script>
 
-    <!-- ========= SUPABASE 客户端初始化 ========= -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-        const SUPABASE_URL = 'https://geswrbnmsaqwqdwpoueo.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdlc3dyYm5tc2Fxd3Fkd3BvdWVvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg0MzY1ODIsImV4cCI6MjA3NDAxMjU4Mn0.DwK4xdbsqXkDZZ65kBXBx2yhROEv2ZNybrtt8m8abW0';
+        // =======================================================
+        // contact.html - 最终、完整、未经省略的客户端脚本
+        // 实现了需要登录才能提交工单的逻辑
+        // =======================================================
         
-        // 【修正】使用一个新的变量名 `supabaseClient` 来避免与全局库的名称 `supabase` 冲突
-        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    </script>
-    <!-- ======================================== -->
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- 步骤 1: 检查用户是否已登录 ---
+            const sessionData = localStorage.getItem('supabase.auth.session');
+            const form = document.getElementById('contactForm');
+            const statusDiv = document.getElementById('formStatus');
+            const submitButton = form.querySelector('button');
 
-    <!-- ========= 表单提交逻辑 ========= -->
-    <script>
-    document.getElementById('contactForm').addEventListener('submit', async function(event) {
-        event.preventDefault();
-        const form = event.target;
-        const formData = new FormData(form);
-        const statusDiv = document.getElementById('formStatus');
+            if (!sessionData) {
+                // 如果未登录，禁用表单，显示提示信息，并准备跳转
+                form.style.display = 'none'; // 隐藏表单
+                statusDiv.innerHTML = '请先 <a href="/login-user.html?redirect=/contact.html">登录</a> 后再提交工单。';
+                statusDiv.className = 'status-message error-message'; // 使用错误样式
+                return; // 终止后续脚本执行
+            }
 
-        statusDiv.textContent = '正在提交...';
-        statusDiv.style.color = 'var(--text-secondary)';
+            // --- 步骤 2: 如果已登录，为表单绑定提交事件 ---
+            const session = JSON.parse(sessionData);
+            const accessToken = session.access_token;
 
-        // 【修正】使用上面新创建的 `supabaseClient` 变量来执行数据库操作
-        const { data, error } = await supabaseClient
-            .from('tickets')
-            .insert({
-                name: formData.get('name'),
-                email: formData.get('email'),
-                subject: formData.get('subject'),
-                message: formData.get('message')
+            form.addEventListener('submit', async function(event) {
+                event.preventDefault();
+                const formData = new FormData(form);
+                
+                statusDiv.textContent = '正在提交...';
+                statusDiv.className = 'status-message';
+                submitButton.disabled = true;
+
+                try {
+                    // --- 步骤 3: 发送请求到受保护的 API 接口 ---
+                    const response = await fetch('/api/tickets', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${accessToken}` // 在请求头中附带用户的认证令牌
+                        },
+                        body: JSON.stringify({
+                            subject: formData.get('subject'),
+                            message: formData.get('message')
+                        })
+                    });
+
+                    const result = await response.json();
+                    
+                    if (response.status === 401) {
+                         // Token 可能已过期
+                        localStorage.removeItem('supabase.auth.session');
+                        throw new Error('您的登录已过期，请重新登录后再试。');
+                    }
+                    
+                    if (!response.ok) {
+                        throw new Error(result.error || '提交失败，请稍后重试');
+                    }
+                    
+                    // --- 步骤 4: 处理成功响应 ---
+                    statusDiv.textContent = '您的工单已成功提交！确认邮件已发送至您的邮箱。';
+                    statusDiv.className = 'status-message success-message';
+                    form.reset();
+
+                } catch (error) {
+                    // --- 步骤 5: 处理错误 ---
+                    statusDiv.textContent = `提交失败: ${error.message}`;
+                    statusDiv.className = 'status-message error-message';
+                    // 如果是因为登录过期导致的失败，一段时间后可以自动跳转
+                    if (error.message.includes('过期')) {
+                        setTimeout(() => window.location.href = `/login-user.html?redirect=/contact.html`, 3000);
+                    }
+                } finally {
+                    // 无论成功还是失败，最后都重新启用按钮
+                    submitButton.disabled = false;
+                }
             });
-
-        if (error) {
-            console.error('提交失败:', error);
-            statusDiv.textContent = '提交失败: ' + error.message;
-            statusDiv.style.color = '#FF4F4F';
-        } else {
-            statusDiv.textContent = '您的工单已成功提交！';
-            statusDiv.style.color = '#02CB6A';
-            form.reset();
-        }
-    });
+        });
     </script>
-    <!-- ============================== -->
-
 </body>
 </html>
