@@ -1,6 +1,6 @@
 // =======================================================
-// server.js - 最终、完整、未经省略的版本
-// 修正: 管理员后台获取工单列表的查询逻辑
+// server.js - 最终、完整、未经省略的修复版本
+// 修正: 使用最可靠的分步查询获取工单和用户信息
 // =======================================================
 
 // 1. 导入所有必需的模块
@@ -53,7 +53,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 // 8. API 路由定义
 // =======================================================
 
-// --- 路由: /admin 直接指向后台登录页 (由 vercel.json 处理，保留用于本地开发) ---
+// --- 路由: /admin (由 vercel.json 处理，保留用于本地开发) ---
 app.get('/admin', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
@@ -157,7 +157,7 @@ app.post('/api/tickets', async (req, res) => {
     }
 });
 
-// --- API: 管理员获取工单列表 (使用更可靠的查询) ---
+// --- API: 管理员获取工单列表 (使用最可靠的查询) ---
 app.get('/api/tickets', async (req, res) => {
     try {
         const authHeader = req.headers.authorization;
@@ -170,20 +170,32 @@ app.get('/api/tickets', async (req, res) => {
 
         const { data: tickets, error: ticketsError } = await supabaseAdmin.from('tickets').select('*, user_id').order('submitted_at', { ascending: false });
         if (ticketsError) throw ticketsError;
+        if (!tickets || tickets.length === 0) return res.status(200).json({ tickets: [] });
 
-        if (tickets && tickets.length > 0) {
-            const userIds = [...new Set(tickets.map(t => t.user_id).filter(id => id))];
-            const { data: usersInfo, error: usersError } = await supabaseAdmin.from('profiles').select('id, username, users(email)').in('id', userIds);
-            if (usersError) throw usersError;
-            const userInfoMap = new Map(usersInfo.map(info => [info.id, info]));
-            const ticketsWithUserInfo = tickets.map(ticket => {
-                const userInfo = userInfoMap.get(ticket.user_id);
-                return { ...ticket, name: userInfo?.username || '未知用户', email: userInfo?.users?.email || 'N/A' };
-            });
-            return res.status(200).json({ tickets: ticketsWithUserInfo });
+        const userIds = [...new Set(tickets.map(t => t.user_id).filter(id => id))];
+        if (userIds.length === 0) {
+            const ticketsWithAnonymous = tickets.map(ticket => ({ ...ticket, name: '匿名用户', email: 'N/A' }));
+            return res.status(200).json({ tickets: ticketsWithAnonymous });
         }
+
+        const { data: profiles, error: profilesError } = await supabaseAdmin.from('profiles').select('id, username').in('id', userIds);
+        const { data: users, error: usersError } = await supabaseAdmin.auth.admin.listUsers();
+        if (profilesError || usersError) throw profilesError || usersError;
         
-        res.status(200).json({ tickets: [] });
+        const filteredUsers = users.users.filter(u => userIds.includes(u.id));
+        const userInfoMap = new Map();
+        userIds.forEach(id => {
+            const userProfile = profiles.find(p => p.id === id);
+            const userAuth = filteredUsers.find(u => u.id === id);
+            userInfoMap.set(id, { username: userProfile?.username || '未知用户', email: userAuth?.email || 'N/A' });
+        });
+
+        const ticketsWithUserInfo = tickets.map(ticket => {
+            const userInfo = userInfoMap.get(ticket.user_id);
+            return { ...ticket, name: userInfo?.username || '匿名用户', email: userInfo?.email || 'N/A' };
+        });
+        
+        res.status(200).json({ tickets: ticketsWithUserInfo });
     } catch (error) {
         console.error('/api/tickets[GET] 接口错误:', error);
         res.status(500).json({ error: '获取工单数据失败' });
