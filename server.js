@@ -71,7 +71,7 @@ app.post('/api/send-code', async (req, res) => {
         const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
         await supabase.from('verification_codes').insert({ email, code: verificationCode, expires_at: expiresAt });
         await resend.emails.send({
-            from: 'TribitHub <message@tribit.top>', to: [email], subject: `您的 TribitHub 注册验证码是 ${verificationCode}`,
+            from: 'TribitHub <message@betteryuan.cn>', to: [email], subject: `您的 TribitHub 注册验证码是 ${verificationCode}`,
             html: `<p>您的验证码是: <strong>${verificationCode}</strong></p>`,
         });
         res.status(200).json({ message: '验证码已发送！' });
