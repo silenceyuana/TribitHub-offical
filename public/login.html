@@ -3,24 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>后台登录</title>
+    <title>后台登录 - TribitHub</title>
+    <!-- 1. 链接到您的主样式表 -->
     <link rel="stylesheet" href="dist/css/style.css">
+
+    <!-- 2. 专属样式 -->
     <style>
-        body { display: flex; align-items: center; justify-content: center; min-height: 100vh; background-color: #15181D; }
-        .login-container { max-width: 400px; width: 100%; padding: 32px; background-color: #1D2026; border-radius: 4px; }
-        .login-title { text-align: center; margin-bottom: 24px; }
-        .error-message { color: #FF4F4F; text-align: center; margin-bottom: 16px; font-size: 14px; }
+        /* 复用您在 style.css 中定义的登录页面样式 */
+        body {
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            min-height: 100vh;
+        }
     </style>
 </head>
-<body>
+<body class="login-page">
     <div class="login-container">
         <h1 class="h3 login-title">TribitHub 后台登录</h1>
         
+        <!-- 新增: 用于显示错误消息的容器 -->
+        <div id="statusMessage" class="status-message"></div>
     
-        <form action="/login" method="POST">
+        <form id="adminLoginForm">
             <div class="field">
                 <div class="control">
-                    <input class="input" type="email" name="email" placeholder="邮箱" required>
+                    <input class="input" type="email" name="email" placeholder="管理员邮箱" required>
                 </div>
             </div>
             <div class="field">
@@ -35,5 +43,58 @@
             </div>
         </form>
     </div>
+
+    <!-- 3. 【关键新增】添加处理表单提交的 JavaScript -->
+    <script>
+        document.getElementById('adminLoginForm').addEventListener('submit', async (event) => {
+            event.preventDefault(); // 阻止表单的默认提交行为
+
+            const form = event.target;
+            const email = form.email.value;
+            const password = form.password.value;
+            
+            const statusMessage = document.getElementById('statusMessage');
+            const submitButton = form.querySelector('button');
+
+            // 提供即时反馈
+            statusMessage.textContent = '';
+            statusMessage.className = 'status-message';
+            submitButton.disabled = true;
+            submitButton.textContent = '登录中...';
+
+            try {
+                // 向后端的 /login 接口发送请求
+                const response = await fetch('/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    // 如果后端返回错误 (如 401, 403, 500), 则抛出错误
+                    throw new Error(result.error || '登录失败，请检查您的凭证');
+                }
+
+                // --- 登录成功 ---
+                // 1. 将后端返回的 accessToken 保存到 sessionStorage
+                sessionStorage.setItem('adminAccessToken', result.accessToken);
+                
+                // 2. 跳转到后台管理页面
+                window.location.href = '/admin.html';
+
+            } catch (error) {
+                // --- 登录失败 ---
+                // 在页面上显示错误信息
+                statusMessage.textContent = error.message;
+                statusMessage.classList.add('error-message');
+            } finally {
+                // 无论成功失败，都恢复按钮状态
+                submitButton.disabled = false;
+                submitButton.textContent = '登录';
+            }
+        });
+    </script>
 </body>
 </html>
