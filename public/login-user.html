@@ -45,7 +45,10 @@
         </p>
     </div>
 
-    <script>
+
+
+
+<script>
     // 检查 URL 中是否有提示消息（例如从邮箱验证成功后跳转过来）
     window.addEventListener('DOMContentLoaded', () => {
         const params = new URLSearchParams(window.location.search);
@@ -53,6 +56,11 @@
         if (params.get('message') === 'verification_success') {
             statusMessage.textContent = '邮箱验证成功！现在您可以登录了。';
             statusMessage.classList.add('success-message');
+        }
+        // 如果是从其他页面（如 contact.html）重定向过来的，可以在这里处理
+        if (params.has('redirect')) {
+             // 可以在这里保存 redirect url，登录成功后再跳转回去
+             sessionStorage.setItem('loginRedirect', params.get('redirect'));
         }
     });
 
@@ -85,9 +93,16 @@
 
             // 登录成功，将 session 保存到 localStorage
             localStorage.setItem('supabase.auth.session', JSON.stringify(result.session));
-
-            // 跳转到用户中心
-            window.location.href = '/dashboard.html';
+            
+            // 检查是否有重定向地址
+            const redirectUrl = sessionStorage.getItem('loginRedirect');
+            if (redirectUrl) {
+                sessionStorage.removeItem('loginRedirect'); // 用完后清除
+                window.location.href = redirectUrl;
+            } else {
+                // 【已修改】默认跳转到主页
+                window.location.href = '/';
+            }
 
         } catch (error) {
             statusMessage.textContent = error.message;
@@ -96,6 +111,7 @@
             submitButton.disabled = false;
         }
     });
-    </script>
+</script>
+
 </body>
 </html>
