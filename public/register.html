@@ -5,29 +5,76 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>创建账户 - TribitHub</title>
     <link rel="stylesheet" href="dist/css/style.css">
-    <script>
-        (function() {
-            const theme = localStorage.getItem('theme');
-            if (theme === 'light') {
-                document.documentElement.classList.add('light-theme');
-            }
-        })();
-    </script>
     <style>
-        body { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
-        .register-container { max-width: 420px; width: 100%; padding: 40px; background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); transition: background-color 0.3s ease, border-color 0.3s ease; }
-        .register-title { text-align: center; margin-bottom: 30px; font-size: 28px; font-weight: 700; color: var(--text-primary); }
-        .field { margin-bottom: 20px; }
-        .field-label { display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-primary); font-size: 14px; }
-        .input-group { position: relative; }
-        #sendCodeBtn { position: absolute; right: 1px; top: 1px; bottom: 1px; border: none; background-color: transparent; padding: 0 15px; border-radius: 0 4px 4px 0; cursor: pointer; color: var(--accent-glow); font-weight: 600; transition: color 0.2s; }
-        #sendCodeBtn:disabled { cursor: not-allowed; color: var(--text-secondary); }
-        .login-link { text-align: center; margin-top: 20px; font-size: 14px; }
-        .login-link a { color: var(--accent-glow); text-decoration: none; font-weight: 600; }
+        body { 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            min-height: 100vh; 
+            background-color: var(--bg-dynamic);
+            font-family: var(--font-main);
+        }
+        .register-container { 
+            max-width: 420px; 
+            width: 100%; 
+            padding: 40px; 
+            background-color: var(--bg-card); 
+            border: 1px solid var(--border-color);
+            border-radius: 8px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2); 
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+        .register-title { 
+            text-align: center; 
+            margin-bottom: 30px; 
+            font-size: 28px; 
+            font-weight: 700;
+            color: var(--text-primary); 
+        }
+        .field {
+            margin-bottom: 20px;
+        }
+        .field-label { 
+            display: block; 
+            margin-bottom: 8px; 
+            font-weight: 600; 
+            color: var(--text-primary); 
+            font-size: 14px;
+        }
+        .input-group { 
+            position: relative; 
+        }
+        #sendCodeBtn { 
+            position: absolute; 
+            right: 1px; 
+            top: 1px; 
+            bottom: 1px; 
+            border: none; 
+            background-color: transparent; 
+            padding: 0 15px; 
+            border-radius: 0 4px 4px 0; 
+            cursor: pointer; 
+            color: var(--accent-glow); 
+            font-weight: 600;
+            transition: color 0.2s;
+        }
+        #sendCodeBtn:disabled { 
+            cursor: not-allowed; 
+            color: var(--text-secondary); 
+        }
+        .login-link {
+            text-align: center; 
+            margin-top: 20px; 
+            font-size: 14px;
+        }
+        .login-link a {
+            color: var(--accent-glow);
+            text-decoration: none;
+            font-weight: 600;
+        }
     </style>
-    <!-- 【已移除】不再需要加载 Cloudflare 脚本 -->
 </head>
-<body>
+<body class="is-boxed">
     <div class="register-container">
         <h1 class="register-title">创建新账户</h1>
         <form id="registerForm">
@@ -55,8 +102,6 @@
                 <input id="confirmPassword" class="input" type="password" name="confirmPassword" placeholder="再次输入密码" required>
             </div>
             
-            <!-- 【已移除】不再需要 Turnstile 部件 -->
-            
             <div id="statusMessage" class="status-message"></div>
 
             <div class="field">
@@ -69,6 +114,11 @@
     </div>
 
     <script>
+        // =======================================================
+        // register.html - 最终、完整、未经省略的客户端脚本
+        // 在发送验证码时会附带用户名
+        // =======================================================
+
         const form = document.getElementById('registerForm');
         const sendCodeBtn = document.getElementById('sendCodeBtn');
         const statusMessage = document.getElementById('statusMessage');
@@ -76,14 +126,19 @@
         // --- “发送验证码”按钮的逻辑 ---
         sendCodeBtn.addEventListener('click', async () => {
             const email = form.email.value;
-            // 【已移除】不再获取和发送 turnstileToken
+            const username = form.username.value; // 获取用户名
 
+            if (!username) {
+                statusMessage.textContent = '请输入您的用户名。';
+                statusMessage.className = 'status-message error-message';
+                return;
+            }
             if (!email) {
                 statusMessage.textContent = '请输入您的邮箱地址。';
                 statusMessage.className = 'status-message error-message';
                 return;
             }
-            
+
             sendCodeBtn.disabled = true;
             statusMessage.textContent = '正在发送...';
             statusMessage.className = 'status-message';
@@ -92,8 +147,7 @@
                 const response = await fetch('/api/send-code', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    // 【已移除】请求体中不再包含 turnstile-response
-                    body: JSON.stringify({ email }),
+                    body: JSON.stringify({ email, username }), // 将 email 和 username 一同发送
                 });
                 const result = await response.json();
                 if (!response.ok) throw new Error(result.error || '发送失败');
@@ -129,7 +183,6 @@
             const code = formData.get('code');
             const password = formData.get('password');
             const confirmPassword = formData.get('confirmPassword');
-            // 【已移除】不再获取和发送 turnstileToken
 
             if (password !== confirmPassword) {
                 statusMessage.textContent = '两次输入的密码不一致。';
@@ -144,7 +197,6 @@
                 const response = await fetch('/api/register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    // 【已移除】请求体中不再包含 turnstile-response
                     body: JSON.stringify({ username, email, code, password }),
                 });
                 const result = await response.json();

@@ -1,6 +1,6 @@
 // =======================================================
-// server.js - 最终、完整、未经省略的修复版本
-// 修正: 使用最可靠的分步查询获取工单和用户信息
+// server.js - 最终、完整、未经省略的版本
+// 新增: 完整的密码重置功能 (发送验证码 + 更新密码)
 // =======================================================
 
 // 1. 导入所有必需的模块
@@ -61,18 +61,16 @@ app.get('/admin', (req, res) => {
 // --- API: 发送注册验证码 ---
 app.post('/api/send-code', async (req, res) => {
     try {
-        const { email } = req.body;
-        if (!email) return res.status(400).json({ error: '邮箱为必填项' });
+        const { email, username } = req.body;
+        if (!email || !username) return res.status(400).json({ error: '邮箱和用户名为必填项' });
         const { data: { users } } = await supabase.auth.admin.listUsers();
-        if (users.some(user => user.email === email)) {
-            return res.status(400).json({ error: '该邮箱已被注册' });
-        }
+        if (users.some(user => user.email === email)) return res.status(400).json({ error: '该邮箱已被注册' });
         const verificationCode = crypto.randomInt(100000, 999999).toString();
         const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
-        await supabase.from('verification_codes').insert({ email, code: verificationCode, expires_at: expiresAt });
+        await supabase.from('verification_codes').insert({ email, code: verificationCode, expires_at: expiresAt, type: 'signup' });
         await resend.emails.send({
-            from: 'TribitHub <message@betteryuan.cn>', to: [email], subject: `您的 TribitHub 注册验证码是 ${verificationCode}`,
-            html: `<p>您的验证码是: <strong>${verificationCode}</strong></p>`,
+            from: 'TribitHub <message@tribit.top>', to: [email], subject: `您的 TribitHub 注册验证码是 ${verificationCode}`,
+            html: `<p>您的注册验证码是: <strong>${verificationCode}</strong></p>`,
         });
         res.status(200).json({ message: '验证码已发送！' });
     } catch (error) {
@@ -86,7 +84,7 @@ app.post('/api/register', async (req, res) => {
     try {
         const { username, email, code, password } = req.body;
         if (!username || !email || !code || !password) return res.status(400).json({ error: '所有字段均为必填项' });
-        const { data: codes, error: selectError } = await supabase.from('verification_codes').select('*').eq('email', email).order('expires_at', { ascending: false }).limit(1);
+        const { data: codes, error: selectError } = await supabase.from('verification_codes').select('*').eq('email', email).eq('type', 'signup').order('expires_at', { ascending: false }).limit(1);
         if (selectError) throw selectError;
         const record = codes && codes[0];
         if (!record || record.code !== code || new Date() > new Date(record.expires_at)) {
@@ -100,6 +98,49 @@ app.post('/api/register', async (req, res) => {
     } catch (error) {
         console.error('/api/register 接口错误:', error);
         res.status(500).json({ error: '注册失败' });
+    }
+});
+
+// --- API: 发送密码重置验证码 ---
+app.post('/api/password/send-reset-code', async (req, res) => {
+    try {
+        const { email } = req.body;
+        if (!email) return res.status(400).json({ error: '邮箱不能为空' });
+        const { data: { users } } = await supabase.auth.admin.listUsers();
+        if (users.some(user => user.email === email)) {
+            const verificationCode = crypto.randomInt(100000, 999999).toString();
+            const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+            await supabase.from('verification_codes').insert({ email, code: verificationCode, expires_at: expiresAt, type: 'password_reset' });
+            await resend.emails.send({
+                from: 'TribitHub <message@tribit.top>', to: [email], subject: `您的 TribitHub 密码重置验证码是 ${verificationCode}`,
+                html: `<p>您的密码重置验证码是: <strong>${verificationCode}</strong></p>`,
+            });
+        }
+        res.status(200).json({ message: '如果您的邮箱已注册，您将会收到一封包含验证码的邮件。' });
+    } catch (error) {
+        console.error('/api/password/send-reset-code 接口错误:', error);
+        res.status(500).json({ error: '发送验证码失败' });
+    }
+});
+
+// --- API: 验证代码并重置密码 ---
+app.post('/api/password/reset', async (req, res) => {
+    try {
+        const { email, code, newPassword } = req.body;
+        if (!email || !code || !newPassword) return res.status(400).json({ error: '所有字段均为必填项' });
+        const { data: codes, error: selectError } = await supabase.from('verification_codes').select('*').eq('email', email).eq('type', 'password_reset').order('expires_at', { ascending: false }).limit(1);
+        if (selectError) throw selectError;
+        const record = codes && codes[0];
+        if (!record || record.code !== code || new Date() > new Date(record.expires_at)) {
+            return res.status(400).json({ error: '验证码无效或已过期' });
+        }
+        const { data: { user }, error: userError } = await supabase.auth.admin.updateUserByEmail(email, { password: newPassword });
+        if (userError) throw userError;
+        await supabase.from('verification_codes').delete().eq('id', record.id);
+        res.status(200).json({ message: '密码重置成功！您现在可以使用新密码登录了。' });
+    } catch (error) {
+        console.error('/api/password/reset 接口错误:', error);
+        res.status(500).json({ error: '密码重置失败' });
     }
 });
 
@@ -167,21 +208,17 @@ app.get('/api/tickets', async (req, res) => {
         if (userError || !user) return res.status(401).json({ error: '无效的令牌' });
         const { data: profile } = await supabaseAdmin.from('profiles').select('role').eq('id', user.id).single();
         if (!profile || profile.role !== 'admin') return res.status(403).json({ error: '权限不足' });
-
         const { data: tickets, error: ticketsError } = await supabaseAdmin.from('tickets').select('*, user_id').order('submitted_at', { ascending: false });
         if (ticketsError) throw ticketsError;
         if (!tickets || tickets.length === 0) return res.status(200).json({ tickets: [] });
-
         const userIds = [...new Set(tickets.map(t => t.user_id).filter(id => id))];
         if (userIds.length === 0) {
             const ticketsWithAnonymous = tickets.map(ticket => ({ ...ticket, name: '匿名用户', email: 'N/A' }));
             return res.status(200).json({ tickets: ticketsWithAnonymous });
         }
-
         const { data: profiles, error: profilesError } = await supabaseAdmin.from('profiles').select('id, username').in('id', userIds);
         const { data: users, error: usersError } = await supabaseAdmin.auth.admin.listUsers();
         if (profilesError || usersError) throw profilesError || usersError;
-        
         const filteredUsers = users.users.filter(u => userIds.includes(u.id));
         const userInfoMap = new Map();
         userIds.forEach(id => {
@@ -189,12 +226,10 @@ app.get('/api/tickets', async (req, res) => {
             const userAuth = filteredUsers.find(u => u.id === id);
             userInfoMap.set(id, { username: userProfile?.username || '未知用户', email: userAuth?.email || 'N/A' });
         });
-
         const ticketsWithUserInfo = tickets.map(ticket => {
             const userInfo = userInfoMap.get(ticket.user_id);
             return { ...ticket, name: userInfo?.username || '匿名用户', email: userInfo?.email || 'N/A' };
         });
-        
         res.status(200).json({ tickets: ticketsWithUserInfo });
     } catch (error) {
         console.error('/api/tickets[GET] 接口错误:', error);
