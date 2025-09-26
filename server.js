@@ -69,7 +69,7 @@ app.post('/api/send-code', async (req, res) => {
         const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
         await supabase.from('verification_codes').insert({ email, code: verificationCode, expires_at: expiresAt, type: 'signup' });
         await resend.emails.send({
-            from: 'TribitHub <message@tribit.top>', to: [email], subject: `您的 TribitHub 注册验证码是 ${verificationCode}`,
+            from: 'TribitHub <message@betteryuan.cn>', to: [email], subject: `您的 TribitHub 注册验证码是 ${verificationCode}`,
             html: `<p>您的注册验证码是: <strong>${verificationCode}</strong></p>`,
         });
         res.status(200).json({ message: '验证码已发送！' });
@@ -112,7 +112,7 @@ app.post('/api/password/send-reset-code', async (req, res) => {
             const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
             await supabase.from('verification_codes').insert({ email, code: verificationCode, expires_at: expiresAt, type: 'password_reset' });
             await resend.emails.send({
-                from: 'TribitHub <message@tribit.top>', to: [email], subject: `您的 TribitHub 密码重置验证码是 ${verificationCode}`,
+                from: 'TribitHub <message@betteryuan0cn>', to: [email], subject: `您的 TribitHub 密码重置验证码是 ${verificationCode}`,
                 html: `<p>您的密码重置验证码是: <strong>${verificationCode}</strong></p>`,
             });
         }
@@ -188,7 +188,7 @@ app.post('/api/tickets', async (req, res) => {
         const { data: newTicket, error: insertError } = await supabase.from('tickets').insert({ subject, message, user_id: user.id }).select().single();
         if (insertError) throw insertError;
         await resend.emails.send({
-            from: 'TribitHub 支持 <message@tribit.top>', to: [user.email], subject: `您的工单 #${newTicket.id} 已收到`,
+            from: 'TribitHub 支持 <message@betteryuan.cn>', to: [user.email], subject: `您的工单 #${newTicket.id} 已收到`,
             html: `<p>你好 ${user.user_metadata.username || ''}, 您的工单已提交成功。</p>`,
         });
         res.status(200).json({ message: '工单提交成功！', ticket: newTicket });
