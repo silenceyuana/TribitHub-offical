@@ -625,3 +625,39 @@ input:checked + .slider:before {
     fill: var(--bg-body);
     transition: var(--theme-transition);
 }
+
+/* ===================================================================
+//
+//  新增样式: 扩大 Hero 区域，填充垂直留白
+//
+// =================================================================*/
+
+/* 1. 让 .hero 区域本身占据大部分屏幕高度 */
+.hero {
+    /* 设置最小高度为视口高度的 80%。
+       这样在不同尺寸的屏幕上，它都会显得很宽敞。
+       使用 min-height 而非 height 可以防止在小屏幕上内容溢出。*/
+    min-height: 85vh;
+
+    /* 2. 使用 Flexbox 将内部的所有内容垂直居中 */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    /* 3. 移除或覆盖原有的上下 padding，因为 Flexbox 会处理居中，
+       不再需要固定的 80px 边距。*/
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
+/* 确保 .hero-inner 在 Flex 布局中宽度正确 */
+.hero .hero-inner {
+    width: 100%;
+}
+
+/* 响应式调整：在移动端，减小 hero 区域的高度，避免内容过于拥挤 */
+@media (max-width: 768px) {
+    .hero {
+        min-height: 70vh;
+    }
+}
