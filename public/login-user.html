@@ -1,23 +1,14 @@
-<!-- public/login-user.html -->
-
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale:1.0">
     <title>用户登录 - TribitHub</title>
-    <link rel="stylesheet" href="dist/css/style.css">.
+    <link rel="stylesheet" href="dist/css/style.css">
     <link rel="icon" href="dist/images/favicon.ico">
-    <style>
-        body { display: flex; align-items: center; justify-content: center; min-height: 100vh; background-color: #15181D; }
-        .login-container { max-width: 400px; width: 100%; padding: 32px; background-color: #1D2026; border-radius: 4px; }
-        .login-title { text-align: center; margin-bottom: 24px; }
-        .status-message { text-align: center; margin-bottom: 16px; font-size: 14px; min-height: 20px; }
-        .success-message { color: #02CB6A; }
-        .error-message { color: #FF4F4F; }
-    </style>
+    <!-- 旧的、硬编码的 <style> 块已被移除 -->
 </head>
-<body>
+<body class="login-page">
     <div class="login-container">
         <h1 class="h3 login-title">TribitHub 用户登录</h1>
         
@@ -40,81 +31,71 @@
                 </div>
             </div>
         </form>
-        <p style="text-align: right; margin-top: -10px; margin-bottom: 20px; font-size: 14px;">
-    <a href="/forgot-password.html">忘记密码？</a>
+        <!-- 【修改】为 p 标签添加了 class -->
+        <p class="forgot-password-link">
+            <a href="/forgot-password.html">忘记密码？</a>
         </p>
-         <p style="text-align: center; margin-top: 16px; font-size: 14px;">
+        <p>
             还没有账号？ <a href="/register.html">立即注册</a>
         </p>
     </div>
 
-
-
-
-<script>
-    // 检查 URL 中是否有提示消息（例如从邮箱验证成功后跳转过来）
-    window.addEventListener('DOMContentLoaded', () => {
-        const params = new URLSearchParams(window.location.search);
-        const statusMessage = document.getElementById('statusMessage');
-        if (params.get('message') === 'verification_success') {
-            statusMessage.textContent = '邮箱验证成功！现在您可以登录了。';
-            statusMessage.classList.add('success-message');
-        }
-        // 如果是从其他页面（如 contact.html）重定向过来的，可以在这里处理
-        if (params.has('redirect')) {
-             // 可以在这里保存 redirect url，登录成功后再跳转回去
-             sessionStorage.setItem('loginRedirect', params.get('redirect'));
-        }
-    });
-
-    // 登录表单提交逻辑
-    document.getElementById('userLoginForm').addEventListener('submit', async function(event) {
-        event.preventDefault();
-        const form = event.target;
-        const email = form.email.value;
-        const password = form.password.value;
-        
-        const statusMessage = document.getElementById('statusMessage');
-        const submitButton = form.querySelector('button');
-
-        statusMessage.textContent = '正在登录...';
-        statusMessage.className = 'status-message';
-        submitButton.disabled = true;
-
-        try {
-            const response = await fetch('/api/login/password', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password }),
-            });
-
-            const result = await response.json();
-
-            if (!response.ok) {
-                throw new Error(result.error || '发生未知错误');
+    <script>
+        window.addEventListener('DOMContentLoaded', () => {
+            const params = new URLSearchParams(window.location.search);
+            const statusMessage = document.getElementById('statusMessage');
+            if (params.get('message') === 'verification_success') {
+                statusMessage.textContent = '邮箱验证成功！现在您可以登录了。';
+                statusMessage.classList.add('success-message');
             }
+            if (params.has('redirect')) {
+                 sessionStorage.setItem('loginRedirect', params.get('redirect'));
+            }
+        });
 
-            // 登录成功，将 session 保存到 localStorage
-            localStorage.setItem('supabase.auth.session', JSON.stringify(result.session));
+        document.getElementById('userLoginForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const form = event.target;
+            const email = form.email.value;
+            const password = form.password.value;
             
-            // 检查是否有重定向地址
-            const redirectUrl = sessionStorage.getItem('loginRedirect');
-            if (redirectUrl) {
-                sessionStorage.removeItem('loginRedirect'); // 用完后清除
-                window.location.href = redirectUrl;
-            } else {
-                // 【已修改】默认跳转到主页
-                window.location.href = '/';
+            const statusMessage = document.getElementById('statusMessage');
+            const submitButton = form.querySelector('button');
+
+            statusMessage.textContent = '正在登录...';
+            statusMessage.className = 'status-message';
+            submitButton.disabled = true;
+
+            try {
+                const response = await fetch('/api/login/password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password }),
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.error || '发生未知错误');
+                }
+
+                localStorage.setItem('supabase.auth.session', JSON.stringify(result.session));
+                
+                const redirectUrl = sessionStorage.getItem('loginRedirect');
+                if (redirectUrl) {
+                    sessionStorage.removeItem('loginRedirect');
+                    window.location.href = redirectUrl;
+                } else {
+                    window.location.href = '/';
+                }
+
+            } catch (error) {
+                statusMessage.textContent = error.message;
+                statusMessage.classList.add('error-message');
+            } finally {
+                submitButton.disabled = false;
             }
-
-        } catch (error) {
-            statusMessage.textContent = error.message;
-            statusMessage.classList.add('error-message');
-        } finally {
-            submitButton.disabled = false;
-        }
-    });
-</script>
-
+        });
+    </script>
 </body>
 </html>

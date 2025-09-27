@@ -705,3 +705,54 @@ p {
         font-size: 42px; /* 相应地增大移动端字体 */
     }
 }
+
+
+/* ===================================================================
+//
+//  新增样式: 统一并美化登录/注册/密码重置页面
+//
+// =================================================================*/
+
+.login-page, body.login-page {
+    /* 使用变量，确保背景色能自适应主题 */
+    background-color: var(--bg-body); 
+}
+
+.login-container, .register-container {
+    border-width: 1px;
+    border-style: solid;
+    /* 使用变量，确保边框颜色能自适应主题 */
+    border-color: var(--border-color-strong);
+}
+
+.login-title, .register-title {
+    /* 使用变量，确保标题颜色能自适应主题 */
+    color: var(--text-secondary); 
+    font-weight: 600;
+}
+
+/* 调整输入框与按钮之间的间距 */
+.login-container .field:last-of-type,
+.register-container .field:last-of-type {
+    margin-bottom: 24px;
+}
+
+/* “忘记密码” 和 “立即注册” 链接的样式 */
+.login-container p,
+.register-container p {
+    text-align: center;
+    font-size: 14px;
+    margin: 16px 0 0;
+}
+
+.login-container p a,
+.register-container p a {
+    font-weight: 600;
+}
+
+/* 特别为“忘记密码”链接调整位置 */
+.login-container p.forgot-password-link {
+    text-align: right;
+    margin-top: -10px;
+    margin-bottom: 20px;
+}
