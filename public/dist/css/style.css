@@ -1,49 +1,20 @@
 /* ===================================================================
 //
 //  Style Sheet for TribitHub
-//  Version: 1.2 (Final, with all enhancements)
+//  Version: 1.3 (Automatic Dark Mode Update)
 //  Author: Gemini
 //
 // =================================================================*/
 
 /* -------------------------------------------------------------------
- * ## 1. CSS 变量 (主题颜色)
+ * ## 1. CSS 变量 (亮色主题为默认)
  * ------------------------------------------------------------------- */
 
 :root {
     /* 主题切换的过渡效果 */
     --theme-transition: color 0.3s ease, background-color 0.3s ease, border-color 0.3s ease;
 
-    /* == Dark Theme (Default) == */
-    /* 背景色 */
-    --bg-body: #15181D;
-    --bg-container: #1D2026;
-    --bg-input: #242830;
-    --bg-boxed: #101217;
-
-    /* 文本颜色 */
-    --text-primary: #E7E9EA;
-    --text-secondary: #8A94A7;
-    --text-headings: #FFFFFF;
-
-    /* 边框和分隔线 */
-    --border-color: #242830;
-    --border-color-strong: #38404b;
-
-    /* 主色调 (用于按钮、链接等) */
-    --color-primary: #3d8bfd;
-    --color-primary-hover: #579dff;
-
-    /* 状态颜色 */
-    --color-success: #02CB6A;
-    --color-error: #FF4F4F;
-    
-    /* 页头品牌文字颜色 */
-    --header-brand-text: var(--text-headings);
-}
-
-html.light-theme {
-    /* == Light Theme == */
+    /* == Light Theme (Default) == */
     /* 背景色 */
     --bg-body: #F7F9FA;
     --bg-container: #FFFFFF;
@@ -65,11 +36,46 @@ html.light-theme {
     
     /* 页头品牌文字颜色 */
     --header-brand-text: #242830;
+    
+    /* 状态颜色 (在两种模式下保持一致) */
+    --color-success: #02CB6A;
+    --color-error: #FF4F4F;
+}
+
+/* -------------------------------------------------------------------
+ * ## 2. 自动暗色模式 (通过媒体查询)
+ * ------------------------------------------------------------------- */
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        /* == Dark Theme (Applied automatically) == */
+        /* 背景色 */
+        --bg-body: #15181D;
+        --bg-container: #1D2026;
+        --bg-input: #242830;
+        --bg-boxed: #101217;
+
+        /* 文本颜色 */
+        --text-primary: #E7E9EA;
+        --text-secondary: #8A94A7;
+        --text-headings: #FFFFFF;
+
+        /* 边框和分隔线 */
+        --border-color: #242830;
+        --border-color-strong: #38404b;
+
+        /* 主色调 */
+        --color-primary: #3d8bfd;
+        --color-primary-hover: #579dff;
+        
+        /* 页头品牌文字颜色 */
+        --header-brand-text: var(--text-headings);
+    }
 }
 
 
 /* -------------------------------------------------------------------
- * ## 2. 基础和重置样式
+ * ## 3. 基础和重置样式 (无需改动)
  * ------------------------------------------------------------------- */
 
 *, *::before, *::after {
@@ -150,7 +156,7 @@ p {
 
 
 /* -------------------------------------------------------------------
- * ## 3. 布局
+ * ## 4. 布局 (无需改动)
  * ------------------------------------------------------------------- */
 
 .container {
@@ -190,7 +196,7 @@ p {
 
 
 /* -------------------------------------------------------------------
- * ## 4. 组件 (按钮, 表单, 消息, 页头, 页脚)
+ * ## 5. 组件 (按钮, 表单, 消息, 页头, 页脚) (无需改动)
  * ------------------------------------------------------------------- */
 
 /* -- 按钮 -- */
@@ -359,7 +365,7 @@ p {
 
 
 /* -------------------------------------------------------------------
- * ## 5. 特定页面与区域样式
+ * ## 6. 特定页面与区域样式 (字体增大)
  * ------------------------------------------------------------------- */
 
 /* -- 登录/注册/忘记密码页面 -- */
@@ -414,59 +420,13 @@ p {
     width: 100%;
 }
 
+.hero .hero-title {
+    font-size: 56px;
+}
+
 /* -------------------------------------------------------------------
- * ## 6. 特殊组件
+ * ## 7. 特殊组件 (无需改动)
  * ------------------------------------------------------------------- */
- 
-/* -- 主题切换开关 -- */
-.theme-switch-wrapper {
-    position: relative;
-    display: flex;
-    align-items: center;
-}
-.theme-switch {
-    position: relative;
-    display: inline-block;
-    width: 50px;
-    height: 28px;
-}
-.theme-switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-}
-.slider {
-    position: absolute;
-    cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: var(--bg-input);
-    border: 1px solid var(--border-color-strong);
-    border-radius: 34px;
-    transition: .4s;
-}
-.slider:before {
-    position: absolute;
-    content: "";
-    height: 20px;
-    width: 20px;
-    left: 3px;
-    bottom: 3px;
-    background-color: #fff;
-    border-radius: 50%;
-    transition: .4s;
-}
-input:checked + .slider {
-    background-color: var(--color-primary);
-    border-color: var(--color-primary);
-}
-
-input:checked + .slider:before {
-    transform: translateX(22px);
-}
-
 
 /* -- 英雄区域动画 (来自 index.html) -- */
 .hero-figure-box {
@@ -544,7 +504,7 @@ input:checked + .slider:before {
 
 
 /* -------------------------------------------------------------------
- * ## 7. 响应式设计 (Media Queries)
+ * ## 8. 响应式设计 (Media Queries)
  * ------------------------------------------------------------------- */
 
 @media (max-width: 768px) {
@@ -554,6 +514,11 @@ input:checked + .slider:before {
     .h2, .section-title { font-size: 28px; }
     .h3 { font-size: 22px; }
     .section-paragraph { font-size: 16px; }
+
+    /* -- 首页主标题字体 -- */
+    .hero .hero-title {
+        font-size: 42px;
+    }
 
     /* -- 调整布局间距 -- */
     .section { padding: 60px 0; }
@@ -619,11 +584,6 @@ input:checked + .slider:before {
 
     .header-links a {
         font-size: 20px; /* 增大字体 */
-    }
-
-    /* 移动端菜单中的主题切换器 */
-    .header-links .theme-switch-wrapper {
-        margin-top: 16px;
     }
 
     /* -- 首页 Hero 部分 -- */

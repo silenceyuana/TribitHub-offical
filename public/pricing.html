@@ -10,14 +10,7 @@
     <link rel="stylesheet" href="dist/css/style.css">
 	<script src="https://unpkg.com/animejs@3.0.1/lib/anime.min.js"></script>
     <script src="https://unpkg.com/scrollreveal@4.0.0/dist/scrollreveal.min.js"></script>
-    <script>
-        (function() {
-            const theme = localStorage.getItem('theme');
-            if (theme === 'light') {
-                document.documentElement.classList.add('light-theme');
-            }
-        })();
-    </script>
+    <!-- 主题加载脚本已被移除 -->
 </head>
 <body class="is-boxed has-animations">
     <div class="body-wrap">
@@ -31,20 +24,13 @@
                             </a>
                         </h1>
                     </div>
-                    <!-- 【修正】添加了 id 和完整的导航链接 -->
                     <ul id="headerLinks" class="header-links list-reset">
                         <li><a href="index.html">首页</a></li>
                         <li><a href="pricing.html">我们的介绍</a></li>
                         <li><a href="contact.html">联系我们</a></li>
                         <li><a href="login-user.html">注册/登录</a></li>
-                        <li class="theme-switch-wrapper">
-                            <label class="theme-switch" for="theme-toggle-checkbox">
-                                <input type="checkbox" id="theme-toggle-checkbox" />
-                                <span class="slider"></span>
-                            </label>
-                        </li>
+                        <!-- 主题切换开关的 li 已被移除 -->
                     </ul>
-                    <!-- 【修正】添加了汉堡按钮 -->
                     <button id="headerToggle" class="header-toggle" aria-label="Menu">
                         <span></span>
                         <span></span>
@@ -134,25 +120,6 @@
         <script src="dist/js/main.min.js"></script>
         <script src="dist/js/auth-ui.js" defer></script>
         <script src="dist/js/nav.js"></script>
-
-        <script>
-            // 主题切换逻辑
-            const toggleSwitch = document.getElementById('theme-toggle-checkbox');
-            if (toggleSwitch) {
-                const docElement = document.documentElement;
-                if (docElement.classList.contains('light-theme')) {
-                    toggleSwitch.checked = true;
-                }
-                toggleSwitch.addEventListener('change', function(event) {
-                    if (event.target.checked) {
-                        docElement.classList.add('light-theme');
-                        localStorage.setItem('theme', 'light');
-                    } else {
-                        docElement.classList.remove('light-theme');
-                        localStorage.setItem('theme', 'dark');
-                    }
-                });
-            }
-        </script>
+        <!-- 主题切换逻辑脚本已被移除 -->
 </body>
 </html>

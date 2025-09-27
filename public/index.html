@@ -11,14 +11,7 @@
     <link rel="stylesheet" href="dist/css/style.css">
 	<script src="https://unpkg.com/animejs@3.0.1/lib/anime.min.js"></script>
     <script src="https://unpkg.com/scrollreveal@4.0.0/dist/scrollreveal.min.js"></script>
-    <script>
-        (function() {
-            const theme = localStorage.getItem('theme');
-            if (theme === 'light') {
-                document.documentElement.classList.add('light-theme');
-            }
-        })();
-    </script>
+    <!-- 主题加载脚本已被移除 -->
 </head>
 <body class="is-boxed has-animations">
     <div class="body-wrap">
@@ -32,22 +25,14 @@
                             </a>
                         </h1>
                     </div>
-                    <!-- 【检查点 1】确保 ul 标签有 id="headerLinks" -->
                     <ul id="headerLinks" class="header-links list-reset">
                         <li><a href="index.html">首页</a></li>
                         <li><a href="pricing.html">查看我们的介绍</a></li>
                         <li><a href="contact.html">联系我们</a></li>
                         <!-- 这个 li 会被 auth-ui.js 动态修改 -->
                         <li><a href="login-user.html">注册/登录</a></li>
-                        
-                        <li class="theme-switch-wrapper">
-                            <label class="theme-switch" for="theme-toggle-checkbox">
-                                <input type="checkbox" id="theme-toggle-checkbox" />
-                                <span class="slider"></span>
-                            </label>
-                        </li>
+                        <!-- 主题切换开关的 li 已被移除 -->
                     </ul>
-                    <!-- 【检查点 2】确保 button 标签有 id="headerToggle" -->
                     <button id="headerToggle" class="header-toggle" aria-label="Menu">
                         <span></span>
                         <span></span>
@@ -126,6 +111,7 @@
                     </div>
                 </div>
             </section>
+		
         </main>
 
         <footer class="site-footer-minimal">
@@ -135,33 +121,13 @@
                 </div>
             </div>
         </footer>
+       
     </div>
 
     <script src="dist/js/main.min.js"></script>
     <script src="dist/js/auth-ui.js" defer></script>
-
-    <!-- 【检查点 3 & 修正处】确保 nav.js 只被加载一次，并且位置正确 -->
     <script src="dist/js/nav.js"></script>
  
-    <script>
-        // 主题切换逻辑保持不变
-        const toggleSwitch = document.getElementById('theme-toggle-checkbox');
-        const docElement = document.documentElement;
-
-        if (toggleSwitch) {
-            if (docElement.classList.contains('light-theme')) {
-                toggleSwitch.checked = true;
-            }
-            toggleSwitch.addEventListener('change', function(event) {
-                if (event.target.checked) {
-                    docElement.classList.add('light-theme');
-                    localStorage.setItem('theme', 'light');
-                } else {
-                    docElement.classList.remove('light-theme');
-                    localStorage.setItem('theme', 'dark');
-                }
-            });
-        }
-    </script>
+    <!-- 主题切换逻辑脚本已被移除 -->
 </body>
 </html>

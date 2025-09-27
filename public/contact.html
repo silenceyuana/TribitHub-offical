@@ -6,28 +6,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>提交工单 - TribitHub</title>
     
-    <!-- 1. 链接到您的主样式表 -->
     <link rel="stylesheet" href="dist/css/style.css">
-    
-    <!-- 2. 内联脚本，用于在页面加载时立即应用主题 -->
-    <script>
-        (function() {
-            const theme = localStorage.getItem('theme');
-            if (theme === 'light') {
-                document.documentElement.classList.add('light-theme');
-            }
-        })();
-    </script>
+    <!-- 主题加载脚本已被移除 -->
 
-    <!-- 3. 针对此页面的专属样式 -->
     <style>
         .form-status {
             margin-top: 16px;
             font-weight: 600;
             font-size: 16px;
-            min-height: 24px; /* 预留空间防止布局跳动 */
+            min-height: 24px;
         }
-        /* 成功和错误消息的颜色已在 style.css 中定义 */
     </style>
 </head>
 <body class="is-boxed has-animations">
@@ -42,13 +30,18 @@
                             </a>
                         </h1>
                     </div>
-                    <ul class="header-links list-reset">
+                    <ul id="headerLinks" class="header-links list-reset">
                         <li><a href="index.html">首页</a></li>
                         <li><a href="pricing.html">我们的介绍</a></li>
                         <li><a href="contact.html">提交工单</a></li>
-                        <!-- 这个链接会被 auth-ui.js 动态替换 -->
                         <li><a href="login-user.html">注册/登录</a></li>
+                        <!-- 主题切换开关的 li 已被移除 -->
                     </ul>
+                    <button id="headerToggle" class="header-toggle" aria-label="Menu">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </button>
                 </div>
             </div>
         </header>
@@ -65,7 +58,6 @@
                         <div class="contact-wrap">
                             <div class="contact-form" style="margin: 0 auto; max-width: 600px;">
                                 <form id="contactForm">
-                                    <!-- 称呼和邮箱输入框已被移除，因为我们会从登录状态自动获取 -->
                                     <div class="field">
                                         <label class="label screen-reader-text" for="subject">项目主题</label>
                                         <div class="control">
@@ -101,31 +93,23 @@
         </footer>
     </div>
     
-    <!-- 全局认证 UI 脚本，用于处理右上角的用户状态显示 -->
     <script src="dist/js/auth-ui.js" defer></script>
+    <script src="dist/js/nav.js"></script>
 
     <script>
-        // =======================================================
-        // contact.html - 最终、完整、未经省略的客户端脚本
-        // 实现了需要登录才能提交工单的逻辑
-        // =======================================================
-        
         document.addEventListener('DOMContentLoaded', () => {
-            // --- 步骤 1: 检查用户是否已登录 ---
             const sessionData = localStorage.getItem('supabase.auth.session');
             const form = document.getElementById('contactForm');
             const statusDiv = document.getElementById('formStatus');
             const submitButton = form.querySelector('button');
 
             if (!sessionData) {
-                // 如果未登录，禁用表单，显示提示信息，并准备跳转
-                form.style.display = 'none'; // 隐藏表单
+                form.style.display = 'none';
                 statusDiv.innerHTML = '请先 <a href="/login-user.html?redirect=/contact.html">登录</a> 后再提交工单。';
-                statusDiv.className = 'status-message error-message'; // 使用错误样式
-                return; // 终止后续脚本执行
+                statusDiv.className = 'status-message error-message';
+                return;
             }
 
-            // --- 步骤 2: 如果已登录，为表单绑定提交事件 ---
             const session = JSON.parse(sessionData);
             const accessToken = session.access_token;
 
@@ -138,12 +122,11 @@
                 submitButton.disabled = true;
 
                 try {
-                    // --- 步骤 3: 发送请求到受保护的 API 接口 ---
                     const response = await fetch('/api/tickets', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${accessToken}` // 在请求头中附带用户的认证令牌
+                            'Authorization': `Bearer ${accessToken}`
                         },
                         body: JSON.stringify({
                             subject: formData.get('subject'),
@@ -154,7 +137,6 @@
                     const result = await response.json();
                     
                     if (response.status === 401) {
-                         // Token 可能已过期
                         localStorage.removeItem('supabase.auth.session');
                         throw new Error('您的登录已过期，请重新登录后再试。');
                     }
@@ -163,28 +145,21 @@
                         throw new Error(result.error || '提交失败，请稍后重试');
                     }
                     
-                    // --- 步骤 4: 处理成功响应 ---
                     statusDiv.textContent = '您的工单已成功提交！确认邮件已发送至您的邮箱。';
                     statusDiv.className = 'status-message success-message';
                     form.reset();
 
                 } catch (error) {
-                    // --- 步骤 5: 处理错误 ---
                     statusDiv.textContent = `提交失败: ${error.message}`;
                     statusDiv.className = 'status-message error-message';
-                    // 如果是因为登录过期导致的失败，一段时间后可以自动跳转
                     if (error.message.includes('过期')) {
                         setTimeout(() => window.location.href = `/login-user.html?redirect=/contact.html`, 3000);
                     }
                 } finally {
-                    // 无论成功还是失败，最后都重新启用按钮
                     submitButton.disabled = false;
                 }
             });
         });
     </script>
-    
-     <script src="dist/js/nav.js"></script>
-
 </body>
 </html>
