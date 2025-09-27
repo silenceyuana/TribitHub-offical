@@ -1,195 +1,580 @@
-/* =======================================================
- * style.css - 全新重构版 v1.0
- * 融合了 theme.css 的现代设计风格，并适配所有页面
- * ======================================================= */
+/* ===================================================================
+//
+//  Style Sheet for TribitHub
+//  Version: 1.1 (Responsive Update)
+//  Author: Gemini
+//
+// =================================================================*/
 
-/* --- 1. 字体导入 --- */
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap');
+/* -------------------------------------------------------------------
+ * ## 1. CSS 变量 (主题颜色)
+ * ------------------------------------------------------------------- */
 
-/* --- 2. 核心变量定义 --- */
 :root {
-  /* Dark Mode Palette (Default) */
-  --bg-color: #111827;
-  --bg-section-odd: #1f2937;
-  --bg-card: #1f2937;
-  --bg-input: #111827;
-  --bg-navbar: rgba(17, 24, 39, 0.7);
-  --text-primary: #f9fafb;
-  --text-secondary: #9ca3af;
-  --border-color: rgba(249, 250, 251, 0.1);
-  --primary-color: #818cf8;
-  --primary-glow: rgba(129, 140, 248, 0.4);
-  --gradient-start: #6366f1;
-  --gradient-end: #a855f7;
+    /* 主题切换的过渡效果 */
+    --theme-transition: color 0.3s ease, background-color 0.3s ease, border-color 0.3s ease;
 
-  /* Sizing & Typography */
-  --font-family: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --border-radius: 0.5rem;
-  
-  /* Effects */
-  --modern-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
-  --transition: 0.3s ease;
+    /* == Dark Theme (Default) == */
+    /* 背景色 */
+    --bg-body: #15181D;
+    --bg-container: #1D2026;
+    --bg-input: #242830;
+    --bg-boxed: #101217;
+
+    /* 文本颜色 */
+    --text-primary: #E7E9EA;
+    --text-secondary: #8A94A7;
+    --text-headings: #FFFFFF;
+
+    /* 边框和分隔线 */
+    --border-color: #242830;
+    --border-color-strong: #38404b;
+
+    /* 主色调 (用于按钮、链接等) */
+    --color-primary: #3d8bfd;
+    --color-primary-hover: #579dff;
+
+    /* 状态颜色 */
+    --color-success: #02CB6A;
+    --color-error: #FF4F4F;
+    
+    /* 页头品牌文字颜色 */
+    --header-brand-text: var(--text-headings);
 }
 
-:root.light-theme {
-  /* Light Mode Palette */
-  --bg-color: #f9fafb;
-  --bg-section-odd: #ffffff;
-  --bg-card: #ffffff;
-  --bg-input: #f3f4f6;
-  --bg-navbar: rgba(255, 255, 255, 0.7);
-  --text-primary: #111827;
-  --text-secondary: #4b5563;
-  --border-color: rgba(17, 24, 39, 0.1);
-  --primary-color: #6366f1;
-  --primary-glow: rgba(99, 102, 241, 0.3);
+html.light-theme {
+    /* == Light Theme == */
+    /* 背景色 */
+    --bg-body: #F7F9FA;
+    --bg-container: #FFFFFF;
+    --bg-input: #FFFFFF;
+    --bg-boxed: #E9ECEF;
+
+    /* 文本颜色 */
+    --text-primary: #15181D;
+    --text-secondary: #5A6475;
+    --text-headings: #101217;
+
+    /* 边框和分隔线 */
+    --border-color: #E9ECEF;
+    --border-color-strong: #DDE2E7;
+
+    /* 主色调 */
+    --color-primary: #0062E6;
+    --color-primary-hover: #0050b8;
+    
+    /* 页头品牌文字颜色 */
+    --header-brand-text: #242830;
 }
 
-/* --- 3. 全局重置与基础样式 --- */
-*, *::before, *::after { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
+
+/* -------------------------------------------------------------------
+ * ## 2. 基础和重置样式
+ * ------------------------------------------------------------------- */
+
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
 body {
-  margin: 0;
-  font-family: var(--font-family);
-  font-size: 1rem;
-  line-height: 1.7;
-  color: var(--text-secondary);
-  background-color: var(--bg-color);
-  transition: background-color var(--transition), color var(--transition);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-.body-wrap { background-color: var(--bg-color); min-height: 100vh; display: flex; flex-direction: column; }
-main { flex-grow: 1; }
-img, svg { max-width: 100%; height: auto; display: block; }
-
-/* --- 4. 布局容器 --- */
-.container { width: 100%; padding: 0 1rem; margin: 0 auto; }
-@media (min-width: 768px) { .container { max-width: 720px; } }
-@media (min-width: 992px) { .container { max-width: 960px; } }
-@media (min-width: 1200px) { .container { max-width: 1140px; } }
-.container-sm { max-width: 848px; }
-
-/* --- 5. 排版 --- */
-h1, h2, h3, h4, .h1, .h2, .h3, .h4 {
-  margin: 0;
-  font-weight: 700;
-  line-height: 1.3;
-  color: var(--text-primary);
-}
-h1, .h1 { font-size: clamp(2.5rem, 5vw, 3.5rem); margin-bottom: 1rem; }
-h2, .h2 { font-size: clamp(2rem, 4vw, 2.5rem); margin-bottom: 1rem; text-align: center; }
-p { margin-top: 0; margin-bottom: 1.5rem; }
-a { color: var(--primary-color); text-decoration: none; transition: color var(--transition); }
-a:hover { color: var(--text-primary); }
-.text-gradient {
-  background: linear-gradient(90deg, var(--gradient-start), var(--gradient-end));
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+    font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background-color: var(--bg-body);
+    color: var(--text-primary);
+    margin: 0;
+    line-height: 1.6;
+    font-size: 16px;
+    transition: var(--theme-transition);
 }
 
-/* --- 6. 区块 (Sections) --- */
-.section { padding: 4rem 0; }
-.section-header { text-align: center; margin-bottom: 3rem; }
-.section-paragraph { max-width: 600px; margin-left: auto; margin-right: auto; }
-
-/* --- 7. 头部导航 (Header) --- */
-.site-header {
-  padding: 1.5rem 0;
-  background-color: var(--bg-navbar);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border-bottom: 1px solid var(--border-color);
-  transition: background-color var(--transition), border-color var(--transition);
-  position: sticky; top: 0; z-index: 1000;
+body.is-boxed {
+    background-color: var(--bg-boxed);
 }
-.site-header-inner { display: flex; justify-content: space-between; align-items: center; }
-.header-brand-text { font-size: 1.5rem; font-weight: 700; color: var(--text-primary); text-decoration: none; }
-.header-links { display: flex; align-items: center; gap: 0.5rem; list-style: none; margin: 0; padding: 0; }
-.header-links a { color: var(--text-secondary); font-weight: 500; padding: 0.5rem 1rem; border-radius: var(--border-radius); transition: color var(--transition), background-color var(--transition); }
-.header-links a:hover { color: var(--text-primary); background-color: rgba(255,255,255,0.05); }
-.light-theme .header-links a:hover { background-color: rgba(0,0,0,0.05); }
 
-/* --- 8. 按钮 (Buttons) --- */
+.body-wrap {
+    background-color: var(--bg-body);
+    transition: var(--theme-transition);
+    overflow-x: hidden; /* 防止横向滚动 */
+}
+
+a {
+    color: var(--color-primary);
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+a:hover {
+    color: var(--color-primary-hover);
+}
+
+img {
+    max-width: 100%;
+    height: auto;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    margin-top: 0;
+    margin-bottom: 0.5em;
+    color: var(--text-headings);
+    font-weight: 600;
+}
+.h1, .h2, .h3, .h4 { font-weight: 600; }
+.h1 { font-size: 48px; }
+.h2 { font-size: 36px; }
+.h3 { font-size: 24px; }
+.h4 { font-size: 20px; }
+
+p {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    color: var(--text-secondary);
+}
+
+.mt-0 { margin-top: 0 !important; }
+.mb-0 { margin-bottom: 0 !important; }
+.text-center { text-align: center; }
+.text-left { text-align: left; }
+.text-sm { font-size: 14px; }
+.text-xs { font-size: 12px; }
+
+/* 列表重置 */
+.list-reset {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+
+/* -------------------------------------------------------------------
+ * ## 3. 布局
+ * ------------------------------------------------------------------- */
+
+.container {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 24px;
+}
+
+.container-sm {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 0 24px;
+}
+
+.section {
+    padding: 80px 0;
+}
+
+.section-inner {
+    padding: 48px 0;
+}
+
+.section-header {
+    margin-bottom: 48px;
+}
+
+.section-title {
+    font-size: 32px;
+}
+
+.section-paragraph {
+    font-size: 18px;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+
+/* -------------------------------------------------------------------
+ * ## 4. 组件 (按钮, 表单, 消息, 页头, 页脚)
+ * ------------------------------------------------------------------- */
+
+/* -- 按钮 -- */
 .button {
-  display: inline-block;
-  font-weight: 500;
-  text-align: center;
-  cursor: pointer;
-  border: 2px solid transparent;
-  padding: 0.75rem 2rem;
-  font-size: 1rem;
-  border-radius: 50px;
-  transition: all var(--transition);
-  text-decoration: none !important;
-  color: #fff !important;
+    display: inline-block;
+    padding: 12px 24px;
+    border: 1px solid var(--border-color-strong);
+    border-radius: 4px;
+    background: transparent;
+    color: var(--text-primary);
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s ease;
 }
-.button-primary { background-color: var(--primary-color); border-color: var(--primary-color); }
-.button-primary:hover { transform: translateY(-3px); box-shadow: 0 10px 20px -10px var(--primary-glow); }
-.button:not(.button-primary) { color: var(--primary-color) !important; border-color: var(--primary-color); }
-.button:not(.button-primary):hover { color: #fff !important; background-color: var(--primary-color); transform: translateY(-3px); box-shadow: 0 10px 20px -10px var(--primary-glow); }
-.button-block { display: block; width: 100%; }
-.button-sm { padding: 0.5rem 1rem; font-size: 0.9rem; }
 
-/* --- 9. 表单 (Forms) --- */
-.field { margin-bottom: 1.5rem; }
-.field-label { display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-primary); }
+.button:hover {
+    background-color: var(--bg-input);
+    color: var(--text-primary);
+}
+
+.button.button-primary {
+    background-color: var(--color-primary);
+    border-color: var(--color-primary);
+    color: #fff;
+}
+
+.button.button-primary:hover {
+    background-color: var(--color-primary-hover);
+    border-color: var(--color-primary-hover);
+}
+
+.button.button-block {
+    display: block;
+    width: 100%;
+}
+
+.button.button-sm {
+    padding: 8px 16px;
+    font-size: 14px;
+}
+
+.button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+
+/* -- 表单 -- */
+.field {
+    margin-bottom: 16px;
+}
+
+.label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.screen-reader-text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0,0,0,0);
+    border: 0;
+}
+
 .input, .textarea {
-  width: 100%;
-  padding: 0.75rem 1rem;
-  font-size: 1rem;
-  color: var(--text-primary);
-  background-color: var(--bg-input);
-  border: 1px solid var(--border-color);
-  border-radius: var(--border-radius);
-  transition: border-color var(--transition), box-shadow var(--transition);
+    display: block;
+    width: 100%;
+    padding: 12px 16px;
+    font-size: 16px;
+    background-color: var(--bg-input);
+    border: 1px solid var(--border-color-strong);
+    border-radius: 4px;
+    color: var(--text-primary);
+    transition: var(--theme-transition), border-color 0.2s ease;
 }
-.input:focus, .textarea:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 3px var(--primary-glow); }
-.input-group { position: relative; }
 
-/* --- 10. 主题切换与用户菜单 --- */
-.theme-switch-wrapper { display: flex; align-items: center; margin-left: 1rem; }
-/* ... (可以添加您之前的 theme-switch/slider CSS) ... */
-.user-profile { position: relative; margin-left: 1rem; }
-.profile-display { display: flex; align-items: center; cursor: pointer; padding: 0.25rem 0.75rem; border: 1px solid var(--border-color); border-radius: 20px; gap: 0.5rem; transition: background-color var(--transition); }
-.profile-display:hover { background-color: var(--bg-section-odd); }
-.profile-icon { display: inline-block; width: 24px; height: 24px; background-color: var(--text-secondary); border-radius: 50%; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23111827'%3E%3Cpath d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/%3E%3C/svg%3E"); background-size: 16px; background-position: center; }
-.profile-name { font-weight: 500; color: var(--text-primary); }
-.profile-dropdown { display: none; position: absolute; top: calc(100% + 10px); right: 0; background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: var(--border-radius); box-shadow: var(--modern-shadow); min-width: 160px; z-index: 1000; overflow: hidden; }
-.user-profile.active .profile-dropdown { display: block; }
-.profile-dropdown a { display: block; padding: 0.75rem 1rem; color: var(--text-secondary); text-decoration: none !important; }
-.profile-dropdown a:hover { background-color: var(--primary-color); color: #fff !important; }
-
-/* --- 11. 登录/注册/后台页面 --- */
-.login-page, .is-boxed { /* body tag classes */ display: flex; align-items: center; justify-content: center; min-height: 100vh; }
-.login-container, .register-container, .admin-container, .dashboard-container {
-  max-width: 420px;
-  width: 100%;
-  padding: 2.5rem;
-  background-color: var(--card-bg);
-  border: 1px solid var(--border-color);
-  border-radius: var(--border-radius);
-  box-shadow: var(--modern-shadow);
+.input:focus, .textarea:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(61, 139, 253, 0.3);
 }
-.admin-container { max-width: 1280px; margin: 2rem auto; }
-.dashboard-container { max-width: 800px; text-align: center; }
-.login-title, .register-title { text-align: center; margin-bottom: 2rem; }
-.status-message { text-align: center; margin-top: 1rem; font-size: 0.9rem; min-height: 1.5rem; }
-.success-message { color: #10b981; }
-.error-message { color: #ef4444; }
 
-/* --- 12. 后台表格 --- */
-.ticket-table-wrapper { overflow-x: auto; }
-.ticket-table { width: 100%; border-collapse: collapse; }
-.ticket-table th, .ticket-table td { padding: 0.75rem 1rem; text-align: left; border-bottom: 1px solid var(--border-color); }
-.ticket-table th { color: var(--text-secondary); font-size: 0.8rem; text-transform: uppercase; }
-.ticket-table td { color: var(--text-primary); }
+.textarea {
+    resize: vertical;
+    min-height: 120px;
+}
 
-/* --- 13. 响应式设计 --- */
-@media (max-width: 767.98px) {
-  .header-links { display: none; } /* Basic hide for mobile, can be replaced with hamburger menu */
-  .section { padding: 3rem 0; }
-  .hero-actions, .contact-actions { flex-direction: column; align-items: stretch; }
-  .button { width: 100%; }
+
+/* -- 状态消息 -- */
+.status-message {
+    text-align: center;
+    margin-bottom: 16px;
+    font-size: 14px;
+    font-weight: 600;
+    min-height: 21px; /* 避免布局跳动 */
+    padding: 8px;
+    border-radius: 4px;
+}
+
+.status-message.success-message {
+    background-color: rgba(2, 203, 106, 0.1);
+    color: var(--color-success);
+}
+
+.status-message.error-message {
+    background-color: rgba(255, 79, 79, 0.1);
+    color: var(--color-error);
+}
+
+
+/* -- 页头 -- */
+.site-header {
+    padding: 24px 0;
+}
+
+.site-header-inner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.header-brand-text {
+    font-weight: 600;
+    font-size: 24px;
+    color: var(--header-brand-text);
+}
+
+.header-links {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+}
+
+.header-links a {
+    color: var(--text-secondary);
+    font-weight: 600;
+    font-size: 15px;
+}
+
+.header-links a:hover {
+    color: var(--text-primary);
+}
+
+.header-toggle {
+    display: none; /* 默认在桌面端隐藏 */
+}
+
+
+/* -- 页脚 -- */
+.site-footer-minimal {
+    padding: 40px 0;
+    text-align: center;
+}
+
+.footer-copyright {
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+
+
+/* -------------------------------------------------------------------
+ * ## 5. 特定页面样式
+ * ------------------------------------------------------------------- */
+
+/* -- 登录/注册/忘记密码页面 -- */
+.login-page, body.login-page {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 24px;
+}
+
+.login-container, .register-container {
+    max-width: 420px;
+    width: 100%;
+    padding: 40px;
+    background-color: var(--bg-container);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    transition: var(--theme-transition);
+}
+
+.login-title {
+    text-align: center;
+    margin-bottom: 24px;
+}
+
+/* -- 法律文本页面 (隐私/条款) -- */
+.legal-content h3 {
+    margin-top: 2em;
+    margin-bottom: 1em;
+}
+
+.legal-content ul {
+    color: var(--text-secondary);
+    padding-left: 20px;
+}
+.legal-content ul li {
+    margin-bottom: 0.5em;
+}
+
+
+/* -------------------------------------------------------------------
+ * ## 6. 特殊组件
+ * ------------------------------------------------------------------- */
+ 
+/* -- 主题切换开关 (来自 index.html) -- */
+.theme-switch-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+.theme-switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 28px;
+}
+.theme-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--bg-input);
+    border: 1px solid var(--border-color-strong);
+    border-radius: 34px;
+    transition: .4s;
+}
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 20px;
+    width: 20px;
+    left: 3px;
+    bottom: 3px;
+    background-color: #fff;
+    border-radius: 50%;
+    transition: .4s;
+}
+input:checked + .slider {
+    background-color: var(--color-primary);
+    border-color: var(--color-primary);
+}
+
+input:checked + .slider:before {
+    transform: translateX(22px);
+}
+
+
+/* -- 英雄区域动画 (来自 index.html) -- */
+.hero-figure-box {
+    position: absolute;
+    background-color: var(--border-color-strong);
+    border-radius: 4px;
+}
+
+/* -- 特色功能区域 (来自 pricing.html) -- */
+.features-wrap {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 32px;
+}
+.feature-inner {
+    padding: 24px;
+    height: 100%;
+}
+.feature-icon {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    width: 64px;
+    height: 64px;
+    background-color: var(--bg-input);
+    border-radius: 50%;
+}
+
+
+/* -------------------------------------------------------------------
+ * ## 7. 响应式设计 (Media Queries)
+ * ------------------------------------------------------------------- */
+
+@media (max-width: 768px) {
+
+    /* -- 调整基础字体和标题大小 -- */
+    .h1 { font-size: 38px; }
+    .h2, .section-title { font-size: 28px; }
+    .h3 { font-size: 22px; }
+    .section-paragraph { font-size: 16px; }
+
+    /* -- 调整布局间距 -- */
+    .section { padding: 60px 0; }
+    .container, .container-sm { padding: 0 16px; }
+
+    /* -- 移动端导航栏 -- */
+    .header-toggle {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-around;
+        width: 24px;
+        height: 24px;
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        padding: 0;
+        z-index: 1001; /* 确保在最上层 */
+    }
+    .header-toggle span {
+        width: 100%;
+        height: 2px;
+        background: var(--text-primary);
+        border-radius: 10px;
+        transition: all 0.3s ease;
+    }
+    
+    /* 汉堡菜单激活时的动画 */
+    .header-toggle.is-active span:nth-child(1) {
+        transform: rotate(45deg) translate(5px, 5px);
+    }
+    .header-toggle.is-active span:nth-child(2) {
+        opacity: 0;
+    }
+    .header-toggle.is-active span:nth-child(3) {
+        transform: rotate(-45deg) translate(5px, -5px);
+    }
+
+
+    .header-links {
+        display: none; /* 默认隐藏菜单 */
+        flex-direction: column;
+        align-items: center;
+        gap: 20px;
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        padding: 80px 20px 40px;
+        background-color: var(--bg-body);
+        z-index: 1000;
+        border-bottom: 1px solid var(--border-color);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+
+    .header-links.is-active {
+        display: flex; /* 点击后显示 */
+    }
+
+    /* 隐藏主题切换器，简化移动端界面，如果需要可以保留 */
+    .header-links .theme-switch-wrapper {
+        margin-top: 16px;
+    }
+
+    /* -- 首页 Hero 部分 -- */
+    .hero-inner {
+        /* 如果 hero-inner 是 flex 布局，则需要修改 */
+        flex-direction: column;
+        text-align: center;
+    }
+    .hero-copy {
+        margin-bottom: 40px;
+    }
+    .hero-cta {
+        justify-content: center; /* 让按钮居中 */
+    }
+    .hero-figure {
+        display: none; /* 在移动端隐藏复杂的背景动画以提升性能和简洁性 */
+    }
+
+    /* -- 登录/注册表单 -- */
+    .login-container, .register-container {
+        padding: 32px 24px;
+    }
 }
