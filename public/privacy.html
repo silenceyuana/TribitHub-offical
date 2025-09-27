@@ -17,24 +17,23 @@
         })();
     </script>
 </head>
-< <!-- 【修改处 1/3】为 <ul> 添加了 id="headerLinks"，以便 JavaScript 可以找到并控制它 -->
+<body class="is-boxed has-animations">
+    <div class="body-wrap">
+        <!-- 【修正】将完整的 header 结构放在 body 内部 -->
+        <header class="site-header">
+            <div class="container">
+                <div class="site-header-inner">
+                    <div class="brand header-brand">
+                        <h1 class="m-0">
+                           <a href="index.html"><span class="header-brand-text">TribitHub</span></a>
+                        </h1>
+                    </div>
                     <ul id="headerLinks" class="header-links list-reset">
                         <li><a href="index.html">首页</a></li>
-                        <li><a href="pricing.html">查看我们的介绍</a></li>
+                        <li><a href="pricing.html">我们的介绍</a></li>
                         <li><a href="contact.html">联系我们</a></li>
-                        <!-- 这个链接现在会被 auth-ui.js 动态替换 -->
                         <li><a href="login-user.html">注册/登录</a></li>
-                        
-                        <li class="theme-switch-wrapper">
-                            <label class="theme-switch" for="theme-toggle-checkbox">
-                                <input type="checkbox" id="theme-toggle-checkbox" />
-                                <span class="slider">
-                                    <!-- CSS会处理这里的图标，如果没有FontAwesome可以留空 -->
-                                </span>
-                            </label>
-                        </li>
                     </ul>
-                    <!-- 【修改处 2/3】新增了移动端视图下的“汉堡”菜单按钮，它在桌面端会被CSS隐藏 -->
                     <button id="headerToggle" class="header-toggle" aria-label="Menu">
                         <span></span>
                         <span></span>
@@ -43,6 +42,7 @@
                 </div>
             </div>
         </header>
+
         <main>
             <section class="legal-content section">
                 <div class="container-sm">
@@ -78,14 +78,17 @@
             </section>
         </main>
 
+        <footer class="site-footer-minimal">
+            <div class="container">
+                <div class="footer-copyright">
+                    &copy; 2025 TribitHub, 版权所有
+                </div>
+            </div>
+        </footer>
+    </div>
     
-<footer class="site-footer-minimal">
-    <div class="container">
-        <div class="footer-copyright">
-            &copy; 2025 TribitHub, 版权所有
-        </div>
-    </div>
-</footer>
-    </div>
+    <!-- 【修正】添加所有必要的脚本 -->
+    <script src="dist/js/auth-ui.js" defer></script>
+    <script src="dist/js/nav.js"></script>
 </body>
 </html>
