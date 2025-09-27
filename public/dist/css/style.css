@@ -578,3 +578,50 @@ input:checked + .slider:before {
         padding: 32px 24px;
     }
 }
+
+
+/* ===================================================================
+//
+//  新增样式: 用户信息按钮
+//
+// =================================================================*/
+
+.user-profile-button {
+    display: flex;
+    align-items: center;
+    gap: 8px; /* 图标和文字的间距 */
+    padding: 6px 12px 6px 6px; /* 调整内边距，让左侧更贴合图标 */
+    background-color: var(--bg-input);
+    border: 1px solid var(--border-color-strong);
+    border-radius: 9999px; /* 创建胶囊形状 */
+    text-decoration: none;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.user-profile-button:hover {
+    background-color: var(--border-color);
+    border-color: var(--border-color-strong);
+}
+
+.user-profile-button .username {
+    color: var(--text-primary);
+    font-weight: 600;
+    font-size: 15px;
+}
+
+.user-profile-button .user-icon {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%; /* 圆形 */
+    background-color: var(--text-primary); /* 在暗色模式下是亮的，在亮色模式下是暗的 */
+    transition: var(--theme-transition);
+}
+
+.user-profile-button .user-icon svg {
+    /* 图标的颜色取自页面的背景色，形成一个漂亮的“镂空”效果 */
+    fill: var(--bg-body);
+    transition: var(--theme-transition);
+}

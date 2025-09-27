@@ -1,6 +1,6 @@
 // =======================================================
 // server.js - 最终、完整、未经省略的版本
-// 新增: Steam 风格的 HTML 密码重置邮件模板
+// 更新: 工单成功邮件模板
 // =======================================================
 
 // 1. 导入所有必需的模块
@@ -184,10 +184,15 @@ app.post('/api/tickets', async (req, res) => {
         if (!subject || !message) return res.status(400).json({ error: '主题和内容不能为空' });
         const { data: newTicket, error: insertError } = await supabase.from('tickets').insert({ subject, message, user_id: user.id }).select().single();
         if (insertError) throw insertError;
+        
+        // 【修改处】这里是更新后的邮件模板
         await resend.emails.send({
-            from: 'TribitHub 支持 <message@betteryuan.cn>', to: [user.email], subject: `您的工单 #${newTicket.id} 已收到`,
-            html: `<p>你好 ${user.user_metadata.username || ''}, 您的工单已提交成功。</p>`,
+            from: 'TribitHub 支持 <message@betteryuan.cn>',
+            to: [user.email],
+            subject: `您的工单 #${newTicket.id} 已成功提交 - TribitHub`,
+            html: `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f0f2f5; padding: 20px;"><div style="max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);"><div style="padding: 40px; text-align: left;"><h1 style="font-size: 28px; font-weight: 700; color: #111; margin: 0 0 20px;">TribitHub</h1><p style="font-size: 18px; color: #333; margin: 0 0 10px;">${user.user_metadata.username || '您好'},</p><p style="font-size: 16px; color: #555; line-height: 1.6;">我们已成功收到您提交的工单请求。我们的团队将会尽快审核并与您取得联系。以下是您的工单摘要：</p><div style="background-color: #1d2026; color: #ffffff; border-radius: 6px; margin: 30px auto; padding: 25px; text-align: left; font-size: 14px; line-height: 1.8;"><p style="margin: 0 0 10px; color: #8b949e; font-weight: 600;">工单号: <span style="color: #ffffff; font-weight: 700; font-size: 16px;">#${newTicket.id}</span></p><p style="margin: 0; color: #8b949e; font-weight: 600;">主题: <span style="color: #ffffff; font-weight: normal;">${newTicket.subject}</span></p></div><h3 style="font-size: 20px; font-weight: 600; color: #111; margin-top: 40px; border-top: 1px solid #e0e0e0; padding-top: 30px;">接下来会怎样？</h3><p style="font-size: 14px; color: #555; line-height: 1.6;">我们的支持团队已经收到通知，并会根据工单顺序进行处理。所有后续的沟通都将通过您的注册邮箱进行，请留意查收。感谢您的耐心等待！</p></div></div></div>`,
         });
+
         res.status(200).json({ message: '工单提交成功！', ticket: newTicket });
     } catch (error) {
         console.error('提交工单时发生错误 /api/tickets[POST]:', error);
