@@ -1,7 +1,7 @@
 /* ===================================================================
 //
 //  Style Sheet for TribitHub
-//  Version: 1.1 (Responsive Update)
+//  Version: 1.2 (Final, with all enhancements)
 //  Author: Gemini
 //
 // =================================================================*/
@@ -359,7 +359,7 @@ p {
 
 
 /* -------------------------------------------------------------------
- * ## 5. 特定页面样式
+ * ## 5. 特定页面与区域样式
  * ------------------------------------------------------------------- */
 
 /* -- 登录/注册/忘记密码页面 -- */
@@ -400,12 +400,25 @@ p {
     margin-bottom: 0.5em;
 }
 
+/* -- 首页 Hero 区域增强 -- */
+.hero {
+    min-height: 85vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
+.hero .hero-inner {
+    width: 100%;
+}
 
 /* -------------------------------------------------------------------
  * ## 6. 特殊组件
  * ------------------------------------------------------------------- */
  
-/* -- 主题切换开关 (来自 index.html) -- */
+/* -- 主题切换开关 -- */
 .theme-switch-wrapper {
     position: relative;
     display: flex;
@@ -482,6 +495,53 @@ input:checked + .slider:before {
     border-radius: 50%;
 }
 
+/* -- 用户信息按钮 (登录后显示) -- */
+.user-profile-container {
+    display: flex;
+    align-items: center;
+}
+
+.user-profile-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px 6px 6px;
+    background-color: var(--bg-input);
+    border: 1px solid var(--border-color-strong);
+    border-radius: 9999px;
+    text-decoration: none !important;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+    cursor: pointer;
+}
+
+.user-profile-button:hover {
+    background-color: var(--border-color);
+    border-color: var(--border-color-strong);
+}
+
+.user-profile-button .username {
+    color: var(--text-primary);
+    font-weight: 600;
+    font-size: 15px;
+    line-height: 1;
+}
+
+.user-profile-button .user-icon {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background-color: var(--text-primary);
+    transition: var(--theme-transition);
+}
+
+.user-profile-button .user-icon svg {
+    fill: var(--bg-body);
+    transition: var(--theme-transition);
+}
+
 
 /* -------------------------------------------------------------------
  * ## 7. 响应式设计 (Media Queries)
@@ -498,6 +558,11 @@ input:checked + .slider:before {
     /* -- 调整布局间距 -- */
     .section { padding: 60px 0; }
     .container, .container-sm { padding: 0 16px; }
+
+    /* -- 首页 Hero 区域在移动端的高度 -- */
+    .hero {
+        min-height: 70vh;
+    }
 
     /* -- 移动端导航栏 -- */
     .header-toggle {
@@ -531,35 +596,38 @@ input:checked + .slider:before {
         transform: rotate(-45deg) translate(5px, -5px);
     }
 
-
+    /* 展开的移动端菜单样式 */
     .header-links {
-        display: none; /* 默认隐藏菜单 */
+        display: none;
         flex-direction: column;
-        align-items: center;
-        gap: 20px;
+        align-items: flex-start; /* 左对齐 */
+        gap: 30px; /* 增加间距 */
         position: absolute;
         top: 0;
         left: 0;
         width: 100%;
-        padding: 80px 20px 40px;
+        padding: 80px 40px 40px; /* 调整内边距 */
         background-color: var(--bg-body);
         z-index: 1000;
         border-bottom: 1px solid var(--border-color);
         box-shadow: 0 10px 20px rgba(0,0,0,0.1);
     }
-
+    
     .header-links.is-active {
         display: flex; /* 点击后显示 */
     }
 
-    /* 隐藏主题切换器，简化移动端界面，如果需要可以保留 */
+    .header-links a {
+        font-size: 20px; /* 增大字体 */
+    }
+
+    /* 移动端菜单中的主题切换器 */
     .header-links .theme-switch-wrapper {
         margin-top: 16px;
     }
 
     /* -- 首页 Hero 部分 -- */
     .hero-inner {
-        /* 如果 hero-inner 是 flex 布局，则需要修改 */
         flex-direction: column;
         text-align: center;
     }
@@ -578,8 +646,6 @@ input:checked + .slider:before {
         padding: 32px 24px;
     }
 }
-
-
 /* ===================================================================
 //
 //  新增样式: 用户信息按钮
