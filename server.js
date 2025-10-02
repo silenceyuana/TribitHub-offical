@@ -2,6 +2,7 @@
 // server.js - 最终、完整、未经省略的修复版本
 // 修正: 1. Admin 后台获取 Wiki 文章列表的查询逻辑
 //      2. Admin 后台获取工单列表的返回数据格式
+//      3. (最终修正) 将所有 Admin Wiki API 的数据库客户端修正为 supabaseAdmin
 // =======================================================
 
 // 1. 导入所有必需的模块
@@ -61,7 +62,7 @@ app.get('/admin', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
 
-// --- 用户认证与工单系统 API ---
+// --- 用户认证与工单系统 API (这部分无需修改) ---
 app.post('/api/send-code', async (req, res) => {
     try {
         const { email, username } = req.body;
@@ -182,12 +183,6 @@ app.post('/api/tickets', async (req, res) => {
         res.status(500).json({ error: '服务器内部错误' });
     }
 });
-
-// ========================================================================
-// ▼▼▼ THIS IS THE SECOND MODIFIED SECTION ▼▼▼
-// Changed the final line from res.json({ tickets: ... }) to res.json(...)
-// to send a direct array, which the frontend expects.
-// ========================================================================
 app.get('/api/tickets', async (req, res) => {
     try {
         const authHeader = req.headers.authorization;
@@ -218,11 +213,8 @@ app.get('/api/tickets', async (req, res) => {
         res.status(500).json({ error: '获取工单数据失败' });
     }
 });
-// ========================================================================
-// ▲▲▲ END OF THE SECOND MODIFIED SECTION ▲▲▲
-// ========================================================================
 
-// --- WIKI Public APIs ---
+// --- WIKI Public APIs (这部分无需修改) ---
 app.get('/api/wiki/content', async (req, res) => {
     try {
         const { data, error } = await supabase.from('wiki_categories').select('name, wiki_articles(title, slug)').order('name', { ascending: true });
@@ -256,8 +248,13 @@ const isAdmin = async (req, res, next) => {
     next();
 };
 
+// ========================================================================
+// ▼▼▼ ALL WIKI ADMIN APIs BELOW ARE NOW FIXED ▼▼▼
+// Changed all instances of `supabase` to `supabaseAdmin` to bypass RLS.
+// ========================================================================
+
 app.get('/api/admin/wiki/categories', isAdmin, async (req, res) => {
-    const { data, error } = await supabase.from('wiki_categories').select('*');
+    const { data, error } = await supabaseAdmin.from('wiki_categories').select('*'); // FIXED
     if (error) return res.status(500).json({ error: error.message });
     res.status(200).json(data);
 });
@@ -265,30 +262,27 @@ app.get('/api/admin/wiki/categories', isAdmin, async (req, res) => {
 app.post('/api/admin/wiki/categories', isAdmin, async (req, res) => {
     const { name } = req.body;
     if (!name) return res.status(400).json({ error: '分类名称不能为空' });
-    const { data, error } = await supabase.from('wiki_categories').insert({ name }).select().single();
+    const { data, error } = await supabaseAdmin.from('wiki_categories').insert({ name }).select().single(); // FIXED
     if (error) return res.status(500).json({ error: error.message });
     res.status(201).json(data);
 });
 
 app.delete('/api/admin/wiki/categories/:id', isAdmin, async (req, res) => {
     const { id } = req.params;
-    const { error } = await supabase.from('wiki_categories').delete().eq('id', id);
+    const { error } = await supabaseAdmin.from('wiki_categories').delete().eq('id', id); // FIXED
     if (error) return res.status(500).json({ error: '删除失败: ' + error.message });
     res.status(204).send();
 });
 
-// ========================================================================
-// ▼▼▼ THIS IS THE FIRST MODIFIED SECTION (FROM PREVIOUSLY) ▼▼▼
-// ========================================================================
 app.get('/api/admin/wiki/articles', isAdmin, async (req, res) => {
     try {
-        const { data: articles, error: articlesError } = await supabase.from('wiki_articles').select('id, title, slug, category_id');
+        const { data: articles, error: articlesError } = await supabaseAdmin.from('wiki_articles').select('id, title, slug, category_id'); // FIXED
         if (articlesError) throw articlesError;
         if (!articles || articles.length === 0) return res.status(200).json([]);
         const categoryIds = [...new Set(articles.map(a => a.category_id).filter(id => id))];
         let categoryMap = new Map();
         if (categoryIds.length > 0) {
-            const { data: categories, error: categoriesError } = await supabase.from('wiki_categories').select('id, name').in('id', categoryIds);
+            const { data: categories, error: categoriesError } = await supabaseAdmin.from('wiki_categories').select('id, name').in('id', categoryIds); // FIXED
             if (categoriesError) throw categoriesError;
             categoryMap = new Map(categories.map(cat => [cat.id, cat.name]));
         }
@@ -302,21 +296,18 @@ app.get('/api/admin/wiki/articles', isAdmin, async (req, res) => {
         res.status(500).json({ error: '获取文章列表失败' });
     }
 });
-// ========================================================================
-// ▲▲▲ END OF THE FIRST MODIFIED SECTION ▲▲▲
-// ========================================================================
 
 app.post('/api/admin/wiki/articles', isAdmin, async (req, res) => {
     const { title, slug, content, category_id } = req.body;
     if (!title || !slug) return res.status(400).json({ error: '标题和 Slug 不能为空' });
-    const { data, error } = await supabase.from('wiki_articles').insert({ title, slug, content, category_id: category_id || null }).select().single();
+    const { data, error } = await supabaseAdmin.from('wiki_articles').insert({ title, slug, content, category_id: category_id || null }).select().single(); // FIXED
     if (error) return res.status(500).json({ error: error.message });
     res.status(201).json(data);
 });
 
 app.get('/api/admin/wiki/articles/:id', isAdmin, async (req, res) => {
     const { id } = req.params;
-    const { data, error } = await supabase.from('wiki_articles').select('*').eq('id', id).single();
+    const { data, error } = await supabaseAdmin.from('wiki_articles').select('*').eq('id', id).single(); // FIXED
     if (error) return res.status(404).json({ error: '文章未找到' });
     res.status(200).json(data);
 });
@@ -325,7 +316,7 @@ app.put('/api/admin/wiki/articles/:id', isAdmin, async (req, res) => {
     const { id } = req.params;
     const { title, slug, content, category_id } = req.body;
     if (!title || !slug) return res.status(400).json({ error: '标题和 Slug 不能为空' });
-    const { data, error } = await supabase.from('wiki_articles').update({ title, slug, content, category_id: category_id || null, updated_at: new Date() }).eq('id', id).select().single();
+    const { data, error } = await supabaseAdmin.from('wiki_articles').update({ title, slug, content, category_id: category_id || null, updated_at: new Date() }).eq('id', id).select().single(); // FIXED
     if (error) return res.status(500).json({ error: error.message });
     res.status(200).json(data);
 });
@@ -345,6 +336,10 @@ app.post('/api/admin/wiki/upload-image', isAdmin, upload.single('wiki_image'), a
         res.status(500).json({ error: '图片上传失败: ' + error.message });
     }
 });
+
+// ========================================================================
+// ▲▲▲ END OF THE MODIFIED SECTION ▲▲▲
+// ========================================================================
 
 // 9. 启动服务器 (仅在本地开发环境运行时执行)
 if (process.env.NODE_ENV !== 'production') {
