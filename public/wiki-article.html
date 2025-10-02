@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>加载文章... - TribitHub Wiki</title>
+    
+    <!-- 1. 链接到您的主样式表 -->
+    <link rel="stylesheet" href="dist/css/style.css">
+    
+    <!-- 2. 内联脚本，用于在页面加载时立即应用主题，防止主题闪烁 -->
+    <script>
+        (function() {
+            const theme = localStorage.getItem('theme');
+            if (theme === 'light') {
+                document.documentElement.classList.add('light-theme');
+            }
+        })();
+    </script>
+
+    <!-- 3. 针对此页面的专属样式，用于美化渲染后的 Markdown 内容 -->
+    <style>
+        .article-container {
+            padding-top: 2rem;
+            padding-bottom: 2rem;
+        }
+        .article-meta {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 2rem;
+        }
+        .article-content {
+            line-height: 1.8;
+        }
+        .article-content h2, .article-content h3 {
+            margin-top: 2.5rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .article-content h2 { font-size: 1.75rem; }
+        .article-content h3 { font-size: 1.4rem; }
+        .article-content p {
+            margin-bottom: 1.5rem;
+        }
+        .article-content ul, .article-content ol {
+            padding-left: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .article-content li {
+            margin-bottom: 0.5rem;
+        }
+        .article-content img {
+            max-width: 100%;
+            border-radius: var(--border-radius);
+            margin: 2rem auto;
+            display: block;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .article-content blockquote {
+            margin: 1.5rem 0;
+            padding: 0.5rem 1.5rem;
+            border-left: 4px solid var(--primary-color);
+            background-color: var(--bg-section-odd);
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+        .article-content pre {
+            background-color: var(--bg-input);
+            padding: 1rem;
+            border-radius: var(--border-radius);
+            border: 1px solid var(--border-color);
+            overflow-x: auto;
+            font-size: 0.9rem;
+        }
+        .article-content code {
+            font-family: 'Courier New', Courier, monospace;
+        }
+        .article-content pre code {
+            padding: 0;
+            background: none;
+        }
+        .article-content :not(pre) > code {
+            background-color: var(--bg-input);
+            padding: 0.2em 0.4em;
+            border-radius: 4px;
+            font-size: 85%;
+            border: 1px solid var(--border-color);
+        }
+    </style>
+</head>
+<body class="is-boxed">
+    <div class="body-wrap">
+        <header class="site-header">
+            <div class="container">
+                <div class="site-header-inner">
+                    <div class="brand header-brand">
+                        <h1 class="m-0">
+                            <a href="index.html">
+                                <span class="header-brand-text">TribitHub</span>
+                            </a>
+                        </h1>
+                    </div>
+                    <ul class="header-links list-reset">
+                        <li><a href="index.html">首页</a></li>
+                        <li><a href="pricing.html">我们的介绍</a></li>
+                        <li><a href="contact.html">提交工单</a></li>
+                        <li><a href="wiki.html">知识库</a></li>
+                        <li><a href="login-user.html">注册/登录</a></li>
+                    </ul>
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <section class="section">
+                <div class="container-sm article-container" id="article-container">
+                    <h1 class="h2">正在加载文章...</h1>
+                    <p>请稍候</p>
+                </div>
+            </section>
+        </main>
+
+        <footer class="site-footer-minimal">
+            <div class="container">
+                <div class="footer-copyright">
+                    &copy; 2025 TribitHub, 版权所有
+                </div>
+            </div>
+        </footer>
+    </div>
+    
+    <!-- 全局认证 UI 脚本，用于处理右上角的用户状态显示 -->
+    <script src="dist/js/auth-ui.js" defer></script>
+
+    <!-- 引入 Marked.js 库，用于将 Markdown 转换为 HTML -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <script>
+        // =======================================================
+        // wiki-article.html - 最终、完整、未经省略的客户端脚本
+        // =======================================================
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const container = document.getElementById('article-container');
+
+            // 步骤 1: 从 URL 的查询参数中获取文章的 slug
+            const slug = new URLSearchParams(window.location.search).get('slug');
+
+            if (!slug) {
+                container.innerHTML = '<h1 class="h2">错误</h1><p>未指定要查看的文章。</p>';
+                document.title = "文章未找到 - TribitHub Wiki";
+                return;
+            }
+
+            try {
+                // 步骤 2: 调用后端的 API 接口获取文章数据
+                const response = await fetch(`/api/wiki/article/${slug}`);
+
+                if (!response.ok) {
+                    throw new Error('文章不存在或加载失败。');
+                }
+
+                const article = await response.json();
+                
+                // 步骤 3: 更新页面标题
+                document.title = `${article.title} - TribitHub Wiki`;
+
+                // 步骤 4: 使用 Marked.js 将 Markdown 内容转换为 HTML
+                const renderedContent = marked.parse(article.content || '');
+
+                // 步骤 5: 将获取到的数据和渲染后的内容填充到页面中
+                container.innerHTML = `
+                    <h1 class="h1">${article.title}</h1>
+                    <p class="article-meta">
+                        分类: ${article.category ? article.category.name : '未分类'} | 
+                        最后更新于: ${new Date(article.updated_at).toLocaleString('zh-CN')}
+                    </p>
+                    <hr style="margin: 2rem 0; border-color: var(--border-color);">
+                    <div class="article-content">${renderedContent}</div>
+                `;
+
+            } catch (error) {
+                // 步骤 6: 处理加载过程中发生的任何错误
+                console.error("加载文章失败:", error);
+                container.innerHTML = `<h1 class="h2">加载失败</h1><p>${error.message}</p>`;
+                document.title = "加载失败 - TribitHub Wiki";
+            }
+        });
+    </script>
+</body>
+</html>

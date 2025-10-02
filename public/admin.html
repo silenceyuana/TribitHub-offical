@@ -3,211 +3,302 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>后台管理 - 工单列表</title>
-    <!-- 复用前台的CSS样式 -->
-    <link rel="stylesheet" href="dist/css/style.css">
+    <title>后台管理 - TribitHub</title>
+    
+    <!-- 1. 链接到您的主样式表 -->
+    <link rel="stylesheet" href="/dist/css/style.css">
+
+    <!-- 2. 内联脚本，用于在页面加载时立即应用主题 -->
+    <script>
+        (function() {
+            const theme = localStorage.getItem('theme');
+            if (theme === 'light') {
+                document.documentElement.classList.add('light-theme');
+            }
+        })();
+    </script>
+    
+    <!-- 3. 针对此集成后台的专属样式 -->
     <style>
-        /* 为后台页面添加一些特定样式 */
-        body { 
-            background-color: #15181D; 
-            color: #E7E9EA;
+        body {
+            background-color: var(--bg-color);
         }
-        main {
-            flex: 1 0 auto;
+        .admin-layout {
+            display: flex;
+            max-width: 1400px;
+            margin: 2rem auto;
+            gap: 2rem;
+            padding: 0 1rem;
         }
-        .admin-container { 
-            max-width: 1280px; 
-            margin: 0 auto; 
-            padding: 48px 24px;
+        .admin-nav {
+            flex: 0 0 200px;
+            background-color: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: var(--border-radius);
+            border: 1px solid var(--border-color);
+            height: fit-content; /* 让导航高度自适应内容 */
         }
-        .admin-header {
+        .admin-nav h2 {
+            font-size: 1.2rem;
+            margin: 0 0 1.5rem 0;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-primary);
+        }
+        .admin-nav ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .admin-nav li {
+            margin-bottom: 0.5rem;
+        }
+        .admin-nav a {
+            display: block;
+            padding: 0.75rem 1rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            border-radius: var(--border-radius);
+            font-weight: 500;
+            transition: background-color var(--transition), color var(--transition);
+        }
+        .admin-nav a.active,
+        .admin-nav a:hover {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+        }
+        .admin-nav a#logoutLink {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            padding: 0.5rem 0;
+            margin-top: 1rem;
+            border-top: 1px solid var(--border-color);
+            padding-top: 1rem;
+        }
+        .admin-content {
+            flex-grow: 1;
+        }
+        .content-section {
+            display: none; /* 默认隐藏所有内容板块 */
+        }
+        .content-section.active {
+            display: block; /* 只显示激活的板块 */
+        }
+        .page-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 16px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1rem;
+            margin-bottom: 2rem;
         }
-        .ticket-table-wrapper {
-            overflow-x: auto; /* 在小屏幕上可以水平滚动表格 */
-            background-color: #1D2026;
-            border-radius: 8px;
-            border: 1px solid #242830;
+        .table-wrapper {
+            overflow-x: auto;
+            background-color: var(--card-bg);
+            border-radius: var(--border-radius);
+            border: 1px solid var(--border-color);
         }
-        .ticket-table { 
-            width: 100%; 
-            border-collapse: collapse; 
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
         }
-        .ticket-table th, 
-        .ticket-table td { 
-            padding: 12px 16px; 
-            text-align: left; 
-            border-bottom: 1px solid #242830; 
-        }
-        .ticket-table tr:last-child td {
-            border-bottom: none; /* 移除最后一行td的下边框 */
-        }
-        .ticket-table th { 
-            color: #fff; 
+        .data-table th, .data-table td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
             white-space: nowrap;
-            font-size: 14px;
+        }
+        .data-table tr:last-child td {
+            border-bottom: none;
+        }
+        .data-table th {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
             text-transform: uppercase;
-            color: #8A94A7;
         }
-        .ticket-table td { 
-            vertical-align: top; 
-            color: #E7E9EA;
+        .data-table td {
+            color: var(--text-primary);
         }
-        .ticket-table .message-cell { 
-            max-width: 400px; 
-            min-width: 250px;
-            white-space: pre-wrap; 
-            word-break: break-word; 
-        }
-        .ticket-table .date-cell { 
-            white-space: nowrap; 
-        }
-        #loadingMessage { 
-            text-align: center; 
-            padding: 40px; 
-            color: #8A94A7;
+        .data-table .message-cell {
+            white-space: pre-wrap;
+            word-break: break-all;
+            min-width: 300px;
         }
     </style>
 </head>
 <body class="is-boxed">
-    <div class="body-wrap" style="min-height: 100vh; display: flex; flex-direction: column;">
-        <main>
-            <div class="admin-container">
-                <div class="admin-header">
-                    <h1 class="h2 mt-0 mb-0">工单管理后台</h1>
-                    <a href="/logout" id="logoutLink" class="button button-sm">登出</a>
-                </div>
-                <p>这里显示了所有从前台提交的工单。</p>
+    <div class="admin-layout">
+        <!-- 侧边导航栏 -->
+        <nav class="admin-nav">
+            <h2 class="h4">TribitHub 后台</h2>
+            <ul>
+                <li><a href="#tickets" id="nav-tickets" class="nav-link">工单管理</a></li>
+                <li><a href="#wiki" id="nav-wiki" class="nav-link">Wiki 管理</a></li>
+            </ul>
+            <a href="#" id="logoutLink">退出登录</a>
+        </nav>
 
-                <div id="ticketsContainer" class="ticket-table-wrapper">
-                    <p id="loadingMessage">正在加载工单数据...</p>
-                    <table class="ticket-table" style="display:none;">
+        <!-- 内容显示区 -->
+        <main class="admin-content">
+            <!-- 工单管理板块 -->
+            <section id="content-tickets" class="content-section">
+                <div class="page-header">
+                    <h1 class="h3">工单管理</h1>
+                </div>
+                <div class="table-wrapper">
+                    <table class="data-table">
                         <thead>
                             <tr>
-                                <th>ID</th>
-                                <th>提交时间</th>
-                                <th>称呼</th>
-                                <th>邮箱</th>
-                                <th>主题</th>
-                                <th class="message-cell">需求描述</th>
+                                <th>称呼</th><th>邮箱</th><th>主题</th><th class="message-cell">内容</th><th>提交时间</th>
                             </tr>
                         </thead>
-                        <tbody id="ticketsTbody">
-                         
-                        </tbody>
+                        <tbody id="ticketsTbody"></tbody>
                     </table>
                 </div>
-            </div>
+            </section>
+
+            <!-- Wiki 管理板块 -->
+            <section id="content-wiki" class="content-section">
+                <div class="page-header">
+                    <h1 class="h3">Wiki 文章管理</h1>
+                    <a href="/admin-wiki-editor.html" class="button button-primary button-sm">创建新文章</a>
+                </div>
+                <div class="table-wrapper">
+                     <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>文章标题</th><th>分类</th><th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="wikiArticlesTbody"></tbody>
+                    </table>
+                </div>
+            </section>
         </main>
     </div>
 
     <script>
         // =======================================================
         // admin.html - 最终、完整、未经省略的客户端脚本
-        // 实现了基于 Token 的安全数据获取
+        // 实现了集成的、带选项卡功能的管理后台
         // =======================================================
 
-        // 页面加载完成后，立即尝试获取工单数据
-        window.addEventListener('DOMContentLoaded', () => {
-            fetchTickets();
-        });
-
-        // 核心函数：获取并渲染工单列表
-        function fetchTickets() {
-            const tbody = document.getElementById('ticketsTbody');
-            const table = document.querySelector('.ticket-table');
-            const loadingMessage = document.getElementById('loadingMessage');
-
-            // 步骤 1: 从 sessionStorage 中获取管理员登录时保存的 access token
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- 1. 初始化和认证 ---
             const accessToken = sessionStorage.getItem('adminAccessToken');
-
-            // 步骤 2: 如果没有 token，说明未登录，立即重定向到登录页
             if (!accessToken) {
                 window.location.href = '/login.html';
-                return; // 终止执行
+                return;
+            }
+            const headers = { 'Authorization': `Bearer ${accessToken}` };
+            
+            const navLinks = document.querySelectorAll('.nav-link');
+            const contentSections = document.querySelectorAll('.content-section');
+
+            // --- 2. 导航/选项卡切换逻辑 ---
+            const switchTab = (hash) => {
+                const targetHash = hash || window.location.hash || '#tickets'; // 默认显示工单
+
+                navLinks.forEach(link => {
+                    link.classList.toggle('active', link.hash === targetHash);
+                });
+                contentSections.forEach(section => {
+                    section.classList.toggle('active', `#${section.id}` === `content-${targetHash.substring(1)}`);
+                });
+
+                // 根据当前激活的选项卡加载相应的数据
+                if (targetHash === '#tickets' && !ticketsTbody.dataset.loaded) {
+                    loadTickets();
+                } else if (targetHash === '#wiki' && !wikiArticlesTbody.dataset.loaded) {
+                    loadWikiArticles();
+                }
+            };
+
+            // 监听导航链接的点击事件
+            navLinks.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    history.pushState(null, '', e.target.href); // 更新 URL hash 而不重新加载页面
+                    switchTab(e.target.hash);
+                });
+            });
+
+            // 监听浏览器的前进/后退事件
+            window.addEventListener('popstate', () => switchTab(window.location.hash));
+            
+            // --- 3. 数据加载函数 ---
+            const ticketsTbody = document.getElementById('ticketsTbody');
+            const loadTickets = async () => {
+                ticketsTbody.innerHTML = '<tr><td colspan="5">正在加载工单...</td></tr>';
+                try {
+                    const response = await fetch('/api/tickets', { headers });
+                    if (!response.ok) throw new Error('加载失败');
+                    const { tickets } = await response.json();
+                    
+                    ticketsTbody.innerHTML = '';
+                    if (tickets.length === 0) {
+                        ticketsTbody.innerHTML = '<tr><td colspan="5">当前没有工单。</td></tr>';
+                    } else {
+                        tickets.forEach(ticket => {
+                            const date = new Date(ticket.submitted_at).toLocaleString('zh-CN', { dateStyle: 'short', timeStyle: 'short' });
+                            ticketsTbody.innerHTML += `
+                                <tr>
+                                    <td>${escapeHTML(ticket.name)}</td>
+                                    <td>${escapeHTML(ticket.email)}</td>
+                                    <td>${escapeHTML(ticket.subject)}</td>
+                                    <td class="message-cell">${escapeHTML(ticket.message)}</td>
+                                    <td>${date}</td>
+                                </tr>
+                            `;
+                        });
+                    }
+                    ticketsTbody.dataset.loaded = 'true'; // 标记为已加载
+                } catch (error) {
+                    ticketsTbody.innerHTML = `<tr><td colspan="5" class="error-message">${error.message}</td></tr>`;
+                }
+            };
+
+            const wikiArticlesTbody = document.getElementById('wikiArticlesTbody');
+            const loadWikiArticles = async () => {
+                wikiArticlesTbody.innerHTML = '<tr><td colspan="3">正在加载文章...</td></tr>';
+                try {
+                    const response = await fetch('/api/admin/wiki/articles', { headers });
+                    if (!response.ok) throw new Error('加载失败');
+                    const articles = await response.json();
+
+                    wikiArticlesTbody.innerHTML = '';
+                    if (articles.length === 0) {
+                        wikiArticlesTbody.innerHTML = '<tr><td colspan="3">还没有任何文章。</td></tr>';
+                    } else {
+                        articles.forEach(article => {
+                            wikiArticlesTbody.innerHTML += `
+                                <tr>
+                                    <td>${escapeHTML(article.title)}</td>
+                                    <td>${article.category ? escapeHTML(article.category.name) : '未分类'}</td>
+                                    <td><a href="/admin-wiki-editor.html?id=${article.id}" class="button button-sm">编辑</a></td>
+                                </tr>
+                            `;
+                        });
+                    }
+                    wikiArticlesTbody.dataset.loaded = 'true'; // 标记为已加载
+                } catch (error) {
+                    wikiArticlesTbody.innerHTML = `<tr><td colspan="3" class="error-message">${error.message}</td></tr>`;
+                }
+            };
+
+            // --- 4. 登出和辅助函数 ---
+            document.getElementById('logoutLink').addEventListener('click', (e) => {
+                e.preventDefault();
+                sessionStorage.removeItem('adminAccessToken');
+                window.location.href = '/login.html';
+            });
+
+            function escapeHTML(str) {
+                return str ? str.toString().replace(/[&<>'"]/g, tag => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;'}[tag])) : '';
             }
 
-            // 步骤 3: 发起 fetch 请求，并在 Headers 中附带 Authorization Bearer Token
-            fetch('/api/tickets', {
-                headers: {
-                    'Authorization': `Bearer ${accessToken}`
-                }
-            })
-            .then(response => {
-                // 步骤 4: 处理认证失败的情况 (例如 token 过期或无效)
-                if (response.status === 401 || response.status === 403) {
-                    sessionStorage.removeItem('adminAccessToken');
-                    window.location.href = '/login.html';
-                    return; 
-                }
-                if (!response.ok) {
-                    throw new Error(`服务器错误: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (!data || !data.tickets) return; 
-
-                loadingMessage.style.display = 'none';
-                table.style.display = 'table';
-                tbody.innerHTML = ''; 
-
-                if (data.tickets.length > 0) {
-                    data.tickets.forEach(ticket => {
-                        const date = new Date(ticket.submitted_at || ticket.created_at);
-                        const formattedDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
-                      
-                        const row = `
-                            <tr>
-                                <td>${ticket.id}</td>
-                                <td class="date-cell">${formattedDate}</td>
-                                <td>${escapeHTML(ticket.name)}</td>
-                                <td>${escapeHTML(ticket.email)}</td>
-                                <td>${escapeHTML(ticket.subject)}</td>
-                                <td class="message-cell">${escapeHTML(ticket.message)}</td>
-                            </tr>
-                        `;
-                        tbody.innerHTML += row;
-                    });
-                } else {
-                    table.style.display = 'none';
-                    loadingMessage.textContent = '当前没有工单。';
-                    loadingMessage.style.display = 'block';
-                }
-            })
-            .catch(error => {
-                console.error('获取工单数据失败:', error);
-                loadingMessage.textContent = '无法加载数据，请检查服务器连接或重新登录。';
-                loadingMessage.style.color = '#FF4F4F';
-            });
-        }
-
-        // 辅助函数: 对 HTML 特殊字符进行转义，防止 XSS (跨站脚本) 攻击
-        function escapeHTML(str) {
-            if (typeof str !== 'string') return '';
-            return str.replace(/[&<>'"]/g, 
-                tag => ({
-                    '&': '&amp;',
-                    '<': '&lt;',
-                    '>': '&gt;',
-                    "'": '&#39;',
-                    '"': '&quot;'
-                }[tag] || tag)
-            );
-        }
-
-        // 为登出按钮添加事件监听
-        document.getElementById('logoutLink').addEventListener('click', (event) => {
-            event.preventDefault(); // 阻止链接的默认跳转行为
-            
-            // 清除保存在 sessionStorage 中的管理员 token
-            sessionStorage.removeItem('adminAccessToken');
-            
-            // 跳转回后台登录页面
-            window.location.href = '/login.html';
+            // --- 5. 初始加载 ---
+            switchTab(); // 页面加载时，根据 URL hash 初始化第一个选项卡
         });
     </script>
 </body>

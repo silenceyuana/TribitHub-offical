@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>Wiki 文章编辑器 - TribitHub 后台</title>
+    <link rel="stylesheet" href="/dist/css/style.css">
+    
+    <!-- 1. 引入 SimpleMDE 编辑器的 CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/simplemde/latest/simplemde.min.css">
+
+    <style>
+        body { background-color: var(--bg-color); }
+        .editor-container { max-width: 900px; margin: 2rem auto; padding: 2rem; background-color: var(--card-bg); border-radius: var(--border-radius); border: 1px solid var(--border-color); }
+        .page-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; margin-bottom: 2rem; }
+        .status-message { margin-top: 1rem; font-weight: 500; }
+        .CodeMirror { border: 1px solid var(--border-color); border-radius: var(--border-radius); background-color: var(--bg-input); color: var(--text-primary); }
+        .editor-toolbar { border-top-left-radius: var(--border-radius); border-top-right-radius: var(--border-radius); }
+    </style>
+</head>
+<body class="is-boxed">
+    <div class="editor-container">
+        <div class="page-header">
+            <h1 class="h3" id="page-title">创建新文章</h1>
+            <a href="/admin-wiki.html" class="button button-sm">返回列表</a>
+        </div>
+
+        <form id="articleForm">
+            <div class="field">
+                <label for="title" class="field-label">文章标题</label>
+                <input type="text" id="title" name="title" class="input" required>
+            </div>
+            <div class="field">
+                <label for="slug" class="field-label">URL Slug (用于链接)</label>
+                <input type="text" id="slug" name="slug" class="input" required placeholder="例如: getting-started">
+            </div>
+            <div class="field">
+                <label for="category" class="field-label">文章分类</label>
+                <select id="category" name="category_id" class="input">
+                    <option value="">-- 无分类 --</option>
+                    <!-- 分类将由 JS 动态加载 -->
+                </select>
+            </div>
+            <div class="field">
+                <label for="content" class="field-label">文章内容 (支持 Markdown)</label>
+                <textarea id="content" name="content"></textarea>
+            </div>
+            <div class="field">
+                <button type="submit" class="button button-primary">保存文章</button>
+            </div>
+        </form>
+        <div id="statusMessage" class="status-message"></div>
+    </div>
+
+    <!-- 2. 引入 SimpleMDE 编辑器的 JS -->
+    <script src="https://cdn.jsdelivr.net/simplemde/latest/simplemde.min.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const form = document.getElementById('articleForm');
+            const pageTitle = document.getElementById('page-title');
+            const categorySelect = document.getElementById('category');
+            const statusMessage = document.getElementById('statusMessage');
+            
+            const accessToken = sessionStorage.getItem('adminAccessToken');
+            if (!accessToken) {
+                window.location.href = '/login.html';
+                return;
+            }
+
+            const headers = {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json'
+            };
+
+            // --- 初始化 Markdown 编辑器 ---
+            const simplemde = new SimpleMDE({
+                element: document.getElementById("content"),
+                spellChecker: false,
+                // 图片上传逻辑
+                uploadImage: true,
+                imageUploadFunction: async (file, onSuccess, onError) => {
+                    const formData = new FormData();
+                    formData.append('wiki_image', file);
+                    try {
+                        const response = await fetch('/api/admin/wiki/upload-image', {
+                            method: 'POST',
+                            headers: { 'Authorization': `Bearer ${accessToken}` }, // 移除 Content-Type
+                            body: formData
+                        });
+                        const result = await response.json();
+                        if (!response.ok) throw new Error(result.error);
+                        onSuccess(result.imageUrl); // 将返回的图片 URL 插入编辑器
+                    } catch (error) {
+                        onError("图片上传失败: " + error.message);
+                    }
+                },
+            });
+
+            // --- 加载分类 ---
+            try {
+                const catResponse = await fetch('/api/admin/wiki/categories', { headers });
+                const categories = await catResponse.json();
+                categories.forEach(cat => {
+                    const option = new Option(cat.name, cat.id);
+                    categorySelect.add(option);
+                });
+            } catch (error) {
+                console.error("加载分类失败:", error);
+            }
+            
+            // --- 判断是“创建”还是“编辑”模式 ---
+            const urlParams = new URLSearchParams(window.location.search);
+            const articleId = urlParams.get('id');
+
+            if (articleId) {
+                // --- 编辑模式 ---
+                pageTitle.textContent = '编辑文章';
+                try {
+                    const response = await fetch(`/api/admin/wiki/articles/${articleId}`, { headers });
+                    const article = await response.json();
+                    
+                    form.title.value = article.title;
+                    form.slug.value = article.slug;
+                    simplemde.value(article.content || '');
+                    if (article.category_id) {
+                        categorySelect.value = article.category_id;
+                    }
+                } catch (error) {
+                    statusMessage.textContent = '加载文章内容失败。';
+                }
+            }
+
+            // --- 表单提交逻辑 ---
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                statusMessage.textContent = '正在保存...';
+                
+                const body = {
+                    title: form.title.value,
+                    slug: form.slug.value,
+                    content: simplemde.value(),
+                    category_id: form.category_id.value || null,
+                };
+                
+                try {
+                    const url = articleId ? `/api/admin/wiki/articles/${articleId}` : '/api/admin/wiki/articles';
+                    const method = articleId ? 'PUT' : 'POST';
+
+                    const response = await fetch(url, { method, headers, body: JSON.stringify(body) });
+                    const result = await response.json();
+                    if (!response.ok) throw new Error(result.error);
+
+                    statusMessage.textContent = '保存成功！';
+                    statusMessage.className = 'status-message success-message';
+                    
+                    // 保存成功后，跳转回后台 Wiki 列表页
+                    setTimeout(() => {
+                        window.location.href = '/admin-wiki.html';
+                    }, 1000);
+
+                } catch (error) {
+                    statusMessage.textContent = `保存失败: ${error.message}`;
+                    statusMessage.className = 'status-message error-message';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
