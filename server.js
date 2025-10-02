@@ -1,6 +1,6 @@
 // =======================================================
-// server.js - 最终、完整、未经省略的版本
-// 包含所有功能: 用户认证, 工单系统, Wiki CMS
+// server.js - 最终、完整、未经省略的修复版本
+// 修正: Admin 后台获取 Wiki 文章列表的查询逻辑
 // =======================================================
 
 // 1. 导入所有必需的模块
@@ -219,7 +219,6 @@ app.get('/api/wiki/content', async (req, res) => {
         if (error) throw error;
         res.status(200).json(data);
     } catch (error) {
-        console.error('Wiki GET /api/wiki/content error:', error);
         res.status(500).json({ error: '获取 Wiki 内容失败' });
     }
 });
@@ -227,11 +226,10 @@ app.get('/api/wiki/article/:slug', async (req, res) => {
     try {
         const { slug } = req.params;
         const { data, error } = await supabase.from('wiki_articles').select('title, content, updated_at, category:wiki_categories(name)').eq('slug', slug).single();
-        if (error || !data) return res.status(404).json({ error: '文章未找到' });
+        if (error || !data) throw new Error('文章未找到');
         res.status(200).json(data);
     } catch (error) {
-        console.error(`Wiki GET /api/wiki/article/${req.params.slug} error:`, error);
-        res.status(404).json({ error: '文章加载失败' });
+        res.status(404).json({ error: error.message });
     }
 });
 
@@ -247,11 +245,13 @@ const isAdmin = async (req, res, next) => {
     req.user = user;
     next();
 };
+
 app.get('/api/admin/wiki/categories', isAdmin, async (req, res) => {
     const { data, error } = await supabase.from('wiki_categories').select('*');
     if (error) return res.status(500).json({ error: error.message });
     res.status(200).json(data);
 });
+
 app.post('/api/admin/wiki/categories', isAdmin, async (req, res) => {
     const { name } = req.body;
     if (!name) return res.status(400).json({ error: '分类名称不能为空' });
@@ -259,38 +259,61 @@ app.post('/api/admin/wiki/categories', isAdmin, async (req, res) => {
     if (error) return res.status(500).json({ error: error.message });
     res.status(201).json(data);
 });
+
 app.delete('/api/admin/wiki/categories/:id', isAdmin, async (req, res) => {
     const { id } = req.params;
     const { error } = await supabase.from('wiki_categories').delete().eq('id', id);
     if (error) return res.status(500).json({ error: '删除失败: ' + error.message });
     res.status(204).send();
 });
+
 app.get('/api/admin/wiki/articles', isAdmin, async (req, res) => {
-    const { data, error } = await supabase.from('wiki_articles').select('id, title, slug, category:wiki_categories(name)');
-    if (error) return res.status(500).json({ error: error.message });
-    res.status(200).json(data);
+    try {
+        const { data: articles, error: articlesError } = await supabase.from('wiki_articles').select('id, title, slug, category_id');
+        if (articlesError) throw articlesError;
+        if (!articles || articles.length === 0) return res.status(200).json([]);
+        const categoryIds = [...new Set(articles.map(a => a.category_id).filter(id => id))];
+        let categoryMap = new Map();
+        if (categoryIds.length > 0) {
+            const { data: categories, error: categoriesError } = await supabase.from('wiki_categories').select('id, name').in('id', categoryIds);
+            if (categoriesError) throw categoriesError;
+            categoryMap = new Map(categories.map(cat => [cat.id, cat.name]));
+        }
+        const articlesWithCategory = articles.map(article => ({
+            id: article.id, title: article.title, slug: article.slug,
+            category: { name: categoryMap.get(article.category_id) || null }
+        }));
+        res.status(200).json(articlesWithCategory);
+    } catch (error) {
+        console.error('Admin GET /api/admin/wiki/articles error:', error);
+        res.status(500).json({ error: '获取文章列表失败' });
+    }
 });
+
 app.post('/api/admin/wiki/articles', isAdmin, async (req, res) => {
     const { title, slug, content, category_id } = req.body;
     if (!title || !slug) return res.status(400).json({ error: '标题和 Slug 不能为空' });
-    const { data, error } = await supabase.from('wiki_articles').insert({ title, slug, content, category_id }).select().single();
+    const { data, error } = await supabase.from('wiki_articles').insert({ title, slug, content, category_id: category_id || null }).select().single();
     if (error) return res.status(500).json({ error: error.message });
     res.status(201).json(data);
 });
+
 app.get('/api/admin/wiki/articles/:id', isAdmin, async (req, res) => {
     const { id } = req.params;
     const { data, error } = await supabase.from('wiki_articles').select('*').eq('id', id).single();
     if (error) return res.status(404).json({ error: '文章未找到' });
     res.status(200).json(data);
 });
+
 app.put('/api/admin/wiki/articles/:id', isAdmin, async (req, res) => {
     const { id } = req.params;
     const { title, slug, content, category_id } = req.body;
     if (!title || !slug) return res.status(400).json({ error: '标题和 Slug 不能为空' });
-    const { data, error } = await supabase.from('wiki_articles').update({ title, slug, content, category_id, updated_at: new Date() }).eq('id', id).select().single();
+    const { data, error } = await supabase.from('wiki_articles').update({ title, slug, content, category_id: category_id || null, updated_at: new Date() }).eq('id', id).select().single();
     if (error) return res.status(500).json({ error: error.message });
     res.status(200).json(data);
 });
+
 app.post('/api/admin/wiki/upload-image', isAdmin, upload.single('wiki_image'), async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ error: '未找到上传的图片文件' });
