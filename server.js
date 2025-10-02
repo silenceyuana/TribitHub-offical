@@ -267,28 +267,55 @@ app.delete('/api/admin/wiki/categories/:id', isAdmin, async (req, res) => {
     res.status(204).send();
 });
 
+// ========================================================================
+// ▼▼▼ THIS IS THE MODIFIED SECTION ▼▼▼
+// The original logic for this API endpoint was replaced with the following
+// more robust code to correctly fetch and format the Wiki articles list
+// for the admin panel.
+// ========================================================================
 app.get('/api/admin/wiki/articles', isAdmin, async (req, res) => {
     try {
+        // 步骤 1: 先查询所有的文章，并包含它们的 category_id
         const { data: articles, error: articlesError } = await supabase.from('wiki_articles').select('id, title, slug, category_id');
         if (articlesError) throw articlesError;
+
+        // 如果没有文章，直接返回空数组
         if (!articles || articles.length === 0) return res.status(200).json([]);
+        
+        // 步骤 2: 收集所有文章中用到的不重复的 category_id
         const categoryIds = [...new Set(articles.map(a => a.category_id).filter(id => id))];
+        
         let categoryMap = new Map();
+        
+        // 步骤 3: 如果存在分类ID，则用一次查询获取所有这些分类的名称
         if (categoryIds.length > 0) {
             const { data: categories, error: categoriesError } = await supabase.from('wiki_categories').select('id, name').in('id', categoryIds);
             if (categoriesError) throw categoriesError;
+            
+            // 创建一个从 ID 到名称的映射，方便后续查找
             categoryMap = new Map(categories.map(cat => [cat.id, cat.name]));
         }
+        
+        // 步骤 4: 组合文章和分类数据，生成前端期望的、绝对安全的格式
         const articlesWithCategory = articles.map(article => ({
-            id: article.id, title: article.title, slug: article.slug,
-            category: { name: categoryMap.get(article.category_id) || null }
+            id: article.id,
+            title: article.title,
+            slug: article.slug,
+            category: { 
+                name: categoryMap.get(article.category_id) || null // 使用映射安全地查找分类名
+            }
         }));
+        
+        // 返回最终组合好的数据
         res.status(200).json(articlesWithCategory);
     } catch (error) {
         console.error('Admin GET /api/admin/wiki/articles error:', error);
         res.status(500).json({ error: '获取文章列表失败' });
     }
 });
+// ========================================================================
+// ▲▲▲ END OF THE MODIFIED SECTION ▲▲▲
+// ========================================================================
 
 app.post('/api/admin/wiki/articles', isAdmin, async (req, res) => {
     const { title, slug, content, category_id } = req.body;
