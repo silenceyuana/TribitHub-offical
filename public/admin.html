@@ -36,7 +36,7 @@
             padding: 1.5rem;
             border-radius: var(--border-radius);
             border: 1px solid var(--border-color);
-            height: fit-content; /* 让导航高度自适应内容 */
+            height: fit-content;
         }
         .admin-nav h2 {
             font-size: 1.2rem;
@@ -79,10 +79,10 @@
             flex-grow: 1;
         }
         .content-section {
-            display: none; /* 默认隐藏所有内容板块 */
+            display: none;
         }
         .content-section.active {
-            display: block; /* 只显示激活的板块 */
+            display: block;
         }
         .page-header {
             display: flex;
@@ -132,8 +132,8 @@
         <nav class="admin-nav">
             <h2 class="h4">TribitHub 后台</h2>
             <ul>
-                <li><a href="#tickets" id="nav-tickets" class="nav-link">工单管理</a></li>
-                <li><a href="#wiki" id="nav-wiki" class="nav-link">Wiki 管理</a></li>
+                <li><a href="#tickets" class="nav-link">工单管理</a></li>
+                <li><a href="#wiki" class="nav-link">Wiki 管理</a></li>
             </ul>
             <a href="#" id="logoutLink">退出登录</a>
         </nav>
@@ -179,8 +179,7 @@
 
     <script>
         // =======================================================
-        // admin.html - 最终、完整、未经省略的客户端脚本
-        // 实现了集成的、带选项卡功能的管理后台
+        // admin.html - 最终、完整、修正了导航逻辑的客户端脚本
         // =======================================================
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -192,42 +191,47 @@
             }
             const headers = { 'Authorization': `Bearer ${accessToken}` };
             
-            const navLinks = document.querySelectorAll('.nav-link');
+            const navContainer = document.querySelector('.admin-nav');
             const contentSections = document.querySelectorAll('.content-section');
+            const ticketsTbody = document.getElementById('ticketsTbody');
+            const wikiArticlesTbody = document.getElementById('wikiArticlesTbody');
 
             // --- 2. 导航/选项卡切换逻辑 ---
             const switchTab = (hash) => {
-                const targetHash = hash || window.location.hash || '#tickets'; // 默认显示工单
-
-                navLinks.forEach(link => {
+                const targetHash = hash || window.location.hash || '#tickets';
+                
+                navContainer.querySelectorAll('.nav-link').forEach(link => {
                     link.classList.toggle('active', link.hash === targetHash);
                 });
+
                 contentSections.forEach(section => {
-                    section.classList.toggle('active', `#${section.id}` === `content-${targetHash.substring(1)}`);
+                    const sectionId = `#${section.id}`;
+                    const expectedId = `content-${targetHash.substring(1)}`;
+                    section.classList.toggle('active', sectionId.includes(expectedId));
                 });
 
-                // 根据当前激活的选项卡加载相应的数据
                 if (targetHash === '#tickets' && !ticketsTbody.dataset.loaded) {
                     loadTickets();
                 } else if (targetHash === '#wiki' && !wikiArticlesTbody.dataset.loaded) {
                     loadWikiArticles();
                 }
             };
-
-            // 监听导航链接的点击事件
-            navLinks.forEach(link => {
-                link.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    history.pushState(null, '', e.target.href); // 更新 URL hash 而不重新加载页面
-                    switchTab(e.target.hash);
-                });
+            
+            navContainer.addEventListener('click', (event) => {
+                const link = event.target.closest('.nav-link');
+                if (link) {
+                    event.preventDefault();
+                    const targetHash = link.hash;
+                    if (window.location.hash !== targetHash) {
+                        history.pushState(null, '', targetHash);
+                    }
+                    switchTab(targetHash);
+                }
             });
 
-            // 监听浏览器的前进/后退事件
             window.addEventListener('popstate', () => switchTab(window.location.hash));
             
             // --- 3. 数据加载函数 ---
-            const ticketsTbody = document.getElementById('ticketsTbody');
             const loadTickets = async () => {
                 ticketsTbody.innerHTML = '<tr><td colspan="5">正在加载工单...</td></tr>';
                 try {
@@ -252,13 +256,12 @@
                             `;
                         });
                     }
-                    ticketsTbody.dataset.loaded = 'true'; // 标记为已加载
+                    ticketsTbody.dataset.loaded = 'true';
                 } catch (error) {
                     ticketsTbody.innerHTML = `<tr><td colspan="5" class="error-message">${error.message}</td></tr>`;
                 }
             };
 
-            const wikiArticlesTbody = document.getElementById('wikiArticlesTbody');
             const loadWikiArticles = async () => {
                 wikiArticlesTbody.innerHTML = '<tr><td colspan="3">正在加载文章...</td></tr>';
                 try {
@@ -280,7 +283,7 @@
                             `;
                         });
                     }
-                    wikiArticlesTbody.dataset.loaded = 'true'; // 标记为已加载
+                    wikiArticlesTbody.dataset.loaded = 'true';
                 } catch (error) {
                     wikiArticlesTbody.innerHTML = `<tr><td colspan="3" class="error-message">${error.message}</td></tr>`;
                 }
@@ -298,7 +301,7 @@
             }
 
             // --- 5. 初始加载 ---
-            switchTab(); // 页面加载时，根据 URL hash 初始化第一个选项卡
+            switchTab();
         });
     </script>
 </body>
