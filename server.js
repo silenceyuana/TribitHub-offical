@@ -1,6 +1,6 @@
 // =======================================================
-// server.js - Final Corrected Version (v4)
-// Corrected the specific query causing the 500 error on the categories endpoint.
+// server.js - Final Corrected Version (v5)
+// Added a new public API endpoint `/api/wiki/list` to support the Wiki index page.
 // =======================================================
 
 import express from 'express';
@@ -44,7 +44,7 @@ const __dirname = path.dirname(__filename);
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// API Routes... (No changes in this section)
+// API Routes...
 
 app.get('/admin', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'login.html'));
@@ -201,6 +201,25 @@ app.get('/api/tickets', async (req, res) => {
     }
 });
 
+// --- WIKI Public APIs ---
+
+// ▼▼▼ THIS IS THE NEWLY ADDED API ENDPOINT ▼▼▼
+app.get('/api/wiki/list', async (req, res) => {
+    try {
+        const { data, error } = await supabase
+            .from('wiki_categories')
+            .select('name, wiki_articles(title, slug)')
+            .order('name', { ascending: true });
+
+        if (error) throw error;
+        res.status(200).json(data);
+    } catch (error) {
+        res.status(500).json({ error: '获取 Wiki 列表失败' });
+    }
+});
+// ▲▲▲ END OF THE NEWLY ADDED API ENDPOINT ▲▲▲
+
+
 app.get('/api/wiki/content', async (req, res) => {
     try {
         const { data, error } = await supabase.from('wiki_categories').select('name, wiki_articles(title, slug)').order('name', { ascending: true });
@@ -233,11 +252,9 @@ const isAdmin = async (req, res, next) => {
     next();
 };
 
-// ========================================================================
-// ▼▼▼ THE FINAL FIX IS HERE ▼▼▼
-// ========================================================================
+// --- WIKI Admin APIs ---
 app.get('/api/admin/wiki/categories', isAdmin, async (req, res) => {
-    const { data, error } = await supabaseAdmin.from('wiki_categories').select('id, name'); // FIXED
+    const { data, error } = await supabaseAdmin.from('wiki_categories').select('id, name');
     if (error) {
         console.error('CRITICAL ERROR fetching wiki categories:', error);
         return res.status(500).json({ error: error.message });

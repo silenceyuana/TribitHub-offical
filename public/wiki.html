@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wiki - TribitHub</title>
+    <link rel="stylesheet" href="dist/css/style.css">
+    <style>
+        .wiki-container {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 2rem;
+        }
+        .category-group {
+            margin-bottom: 2.5rem;
+        }
+        .category-title {
+            font-size: 1.75rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .article-list {
+            list-style: none;
+            padding-left: 0;
+        }
+        .article-list li {
+            margin-bottom: 1rem;
+        }
+        .article-list a {
+            font-size: 1.1rem;
+            text-decoration: none;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+        .article-list a:hover {
+            color: var(--color-primary);
+        }
+    </style>
+</head>
+<body class="is-boxed">
+    <div class="body-wrap">
+        <header class="site-header">
+            <div class="container">
+                <div class="site-header-inner">
+                    <div class="brand header-brand">
+                        <h1 class="m-0">
+                            <a href="index.html"><span class="header-brand-text">TribitHub</span></a>
+                        </h1>
+                    </div>
+                     <ul id="headerLinks" class="header-links list-reset">
+                        <li><a href="index.html">首页</a></li>
+                        <li><a href="pricing.html">我们的介绍</a></li>
+                        <li><a href="contact.html">提交工单</a></li>
+                        <li><a href="wiki.html">Wiki</a></li>
+                        <li><a href="login-user.html">注册/登录</a></li>
+                    </ul>
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <section class="section">
+                <div class="wiki-container" id="wiki-list-container">
+                    <h1 class="h2">正在加载文章列表...</h1>
+                </div>
+            </section>
+        </main>
+
+        <footer class="site-footer-minimal">
+            <div class="container">
+                <div class="footer-copyright">
+                    &copy; 2025 TribitHub, 版权所有
+                </div>
+            </div>
+        </footer>
+    </div>
+    
+    <script src="dist/js/auth-ui.js" defer></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const container = document.getElementById('wiki-list-container');
+            try {
+                const response = await fetch('/api/wiki/list');
+                if (!response.ok) throw new Error('加载失败');
+                
+                const categories = await response.json();
+                
+                if (categories.length === 0) {
+                    container.innerHTML = '<h1 class="h2">Wiki</h1><p>暂无任何文章。</p>';
+                    return;
+                }
+                
+                let html = '<h1 class="h1 text-center" style="margin-bottom: 3rem;">Wiki 文章目录</h1>';
+                
+                categories.forEach(category => {
+                    if (category.wiki_articles.length > 0) {
+                        html += `<div class="category-group">`;
+                        html += `<h2 class="category-title">${category.name}</h2>`;
+                        html += `<ul class="article-list">`;
+                        category.wiki_articles.forEach(article => {
+                            html += `<li><a href="/wiki-article.html?slug=${article.slug}">${article.title}</a></li>`;
+                        });
+                        html += `</ul></div>`;
+                    }
+                });
+                
+                container.innerHTML = html;
+
+            } catch (error) {
+                container.innerHTML = `<h1 class="h2">加载失败</h1><p>${error.message}</p>`;
+            }
+        });
+    </script>
+</body>
+</html>
