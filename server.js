@@ -212,10 +212,7 @@ app.get('/api/tickets', async (req, res) => {
     }
 });
 
-// =======================================================
-// WIKI - 公共 API (供前端 Wiki 页面调用)
-// =======================================================
-
+// --- WIKI Public APIs ---
 app.get('/api/wiki/content', async (req, res) => {
     try {
         const { data, error } = await supabase.from('wiki_categories').select('name, wiki_articles(title, slug)').order('name', { ascending: true });
@@ -226,7 +223,6 @@ app.get('/api/wiki/content', async (req, res) => {
         res.status(500).json({ error: '获取 Wiki 内容失败' });
     }
 });
-
 app.get('/api/wiki/article/:slug', async (req, res) => {
     try {
         const { slug } = req.params;
@@ -239,11 +235,7 @@ app.get('/api/wiki/article/:slug', async (req, res) => {
     }
 });
 
-
-// =======================================================
-// WIKI - 管理员 API (受 Token 保护)
-// =======================================================
-
+// --- WIKI Admin APIs ---
 const isAdmin = async (req, res, next) => {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ error: '未提供认证令牌' });
@@ -255,13 +247,11 @@ const isAdmin = async (req, res, next) => {
     req.user = user;
     next();
 };
-
 app.get('/api/admin/wiki/categories', isAdmin, async (req, res) => {
     const { data, error } = await supabase.from('wiki_categories').select('*');
     if (error) return res.status(500).json({ error: error.message });
     res.status(200).json(data);
 });
-
 app.post('/api/admin/wiki/categories', isAdmin, async (req, res) => {
     const { name } = req.body;
     if (!name) return res.status(400).json({ error: '分类名称不能为空' });
@@ -269,13 +259,17 @@ app.post('/api/admin/wiki/categories', isAdmin, async (req, res) => {
     if (error) return res.status(500).json({ error: error.message });
     res.status(201).json(data);
 });
-
+app.delete('/api/admin/wiki/categories/:id', isAdmin, async (req, res) => {
+    const { id } = req.params;
+    const { error } = await supabase.from('wiki_categories').delete().eq('id', id);
+    if (error) return res.status(500).json({ error: '删除失败: ' + error.message });
+    res.status(204).send();
+});
 app.get('/api/admin/wiki/articles', isAdmin, async (req, res) => {
     const { data, error } = await supabase.from('wiki_articles').select('id, title, slug, category:wiki_categories(name)');
     if (error) return res.status(500).json({ error: error.message });
     res.status(200).json(data);
 });
-
 app.post('/api/admin/wiki/articles', isAdmin, async (req, res) => {
     const { title, slug, content, category_id } = req.body;
     if (!title || !slug) return res.status(400).json({ error: '标题和 Slug 不能为空' });
@@ -283,14 +277,12 @@ app.post('/api/admin/wiki/articles', isAdmin, async (req, res) => {
     if (error) return res.status(500).json({ error: error.message });
     res.status(201).json(data);
 });
-
 app.get('/api/admin/wiki/articles/:id', isAdmin, async (req, res) => {
     const { id } = req.params;
     const { data, error } = await supabase.from('wiki_articles').select('*').eq('id', id).single();
     if (error) return res.status(404).json({ error: '文章未找到' });
     res.status(200).json(data);
 });
-
 app.put('/api/admin/wiki/articles/:id', isAdmin, async (req, res) => {
     const { id } = req.params;
     const { title, slug, content, category_id } = req.body;
@@ -299,7 +291,6 @@ app.put('/api/admin/wiki/articles/:id', isAdmin, async (req, res) => {
     if (error) return res.status(500).json({ error: error.message });
     res.status(200).json(data);
 });
-
 app.post('/api/admin/wiki/upload-image', isAdmin, upload.single('wiki_image'), async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ error: '未找到上传的图片文件' });
@@ -315,7 +306,6 @@ app.post('/api/admin/wiki/upload-image', isAdmin, upload.single('wiki_image'), a
         res.status(500).json({ error: '图片上传失败: ' + error.message });
     }
 });
-
 
 // 9. 启动服务器 (仅在本地开发环境运行时执行)
 if (process.env.NODE_ENV !== 'production') {

@@ -5,10 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>后台管理 - TribitHub</title>
     
-    <!-- 1. 链接到您的主样式表 -->
     <link rel="stylesheet" href="/dist/css/style.css">
 
-    <!-- 2. 内联脚本，用于在页面加载时立即应用主题 -->
     <script>
         (function() {
             const theme = localStorage.getItem('theme');
@@ -18,7 +16,6 @@
         })();
     </script>
     
-    <!-- 3. 针对此集成后台的专属样式 -->
     <style>
         body {
             background-color: var(--bg-color);
@@ -119,16 +116,44 @@
         .data-table td {
             color: var(--text-primary);
         }
-        .data-table .message-cell {
+        .message-cell {
             white-space: pre-wrap;
             word-break: break-all;
             min-width: 300px;
         }
+        .wiki-management-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 2rem;
+        }
+        .list-group-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            margin-bottom: 0.5rem;
+        }
+        .delete-btn {
+            background: none; border: none; color: var(--text-secondary); cursor: pointer;
+        }
+        .delete-btn:hover { color: #ef4444; }
+        .modal { display: none; position: fixed; z-index: 1050; left: 0; top: 0; width: 100%; height: 100%; overflow: hidden; background-color: rgba(0,0,0,0.5); }
+        .modal.show { display: flex; align-items: center; justify-content: center; }
+        .modal-dialog { width: auto; margin: 0.5rem; }
+        @media (min-width: 576px) { .modal-dialog { max-width: 500px; margin: 1.75rem auto; } }
+        .modal-content { position: relative; display: flex; flex-direction: column; width: 100%; background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: var(--border-radius); }
+        .modal-header { display: flex; align-items: flex-start; justify-content: space-between; padding: 1rem 1rem; border-bottom: 1px solid var(--border-color); }
+        .modal-title { margin: 0; line-height: 1.5; color: var(--text-primary); }
+        .modal-body { position: relative; flex: 1 1 auto; padding: 1rem; }
+        .modal-footer { display: flex; align-items: center; justify-content: flex-end; padding: 1rem; border-top: 1px solid var(--border-color); gap: 0.5rem; }
+        .close-btn { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-secondary); padding: 0; }
     </style>
 </head>
 <body class="is-boxed">
     <div class="admin-layout">
-        <!-- 侧边导航栏 -->
         <nav class="admin-nav">
             <h2 class="h4">TribitHub 后台</h2>
             <ul>
@@ -138,169 +163,173 @@
             <a href="#" id="logoutLink">退出登录</a>
         </nav>
 
-        <!-- 内容显示区 -->
         <main class="admin-content">
-            <!-- 工单管理板块 -->
             <section id="content-tickets" class="content-section">
-                <div class="page-header">
-                    <h1 class="h3">工单管理</h1>
-                </div>
+                <div class="page-header"><h1 class="h3">工单管理</h1></div>
                 <div class="table-wrapper">
                     <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>称呼</th><th>邮箱</th><th>主题</th><th class="message-cell">内容</th><th>提交时间</th>
-                            </tr>
-                        </thead>
+                        <thead><tr><th>称呼</th><th>邮箱</th><th>主题</th><th class="message-cell">内容</th><th>提交时间</th></tr></thead>
                         <tbody id="ticketsTbody"></tbody>
                     </table>
                 </div>
             </section>
 
-            <!-- Wiki 管理板块 -->
             <section id="content-wiki" class="content-section">
-                <div class="page-header">
-                    <h1 class="h3">Wiki 文章管理</h1>
-                    <a href="/admin-wiki-editor.html" class="button button-primary button-sm">创建新文章</a>
-                </div>
-                <div class="table-wrapper">
-                     <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>文章标题</th><th>分类</th><th>操作</th>
-                            </tr>
-                        </thead>
-                        <tbody id="wikiArticlesTbody"></tbody>
-                    </table>
+                <div class="wiki-management-grid">
+                    <div class="article-management">
+                        <div class="page-header">
+                            <h1 class="h3">文章列表</h1>
+                            <a href="/admin-wiki-editor.html" class="button button-primary button-sm">创建新文章</a>
+                        </div>
+                        <div class="table-wrapper">
+                             <table class="data-table">
+                                <thead><tr><th>文章标题</th><th>分类</th><th>操作</th></tr></thead>
+                                <tbody id="wikiArticlesTbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="category-management">
+                        <div class="page-header">
+                            <h3 class="h4">文章分类</h3>
+                            <button id="addCategoryBtn" class="button button-primary button-sm">新增</button>
+                        </div>
+                        <div id="wikiCategoriesList"></div>
+                    </div>
                 </div>
             </section>
         </main>
     </div>
 
-    <script>
-        // =======================================================
-        // admin.html - 最终、完整、修正了导航逻辑的客户端脚本
-        // =======================================================
+    <div id="categoryModal" class="modal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">创建新分类</h5>
+                    <button type="button" class="close-btn" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="categoryForm">
+                        <div class="field">
+                            <label for="categoryName" class="field-label">分类名称</label>
+                            <input type="text" id="categoryName" class="input" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="button" data-dismiss="modal">取消</button>
+                    <button type="button" id="saveCategoryBtn" class="button button-primary">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
+    <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // --- 1. 初始化和认证 ---
             const accessToken = sessionStorage.getItem('adminAccessToken');
-            if (!accessToken) {
-                window.location.href = '/login.html';
-                return;
-            }
-            const headers = { 'Authorization': `Bearer ${accessToken}` };
+            if (!accessToken) { window.location.href = '/login.html'; return; }
+            const headers = { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' };
             
             const navContainer = document.querySelector('.admin-nav');
             const contentSections = document.querySelectorAll('.content-section');
             const ticketsTbody = document.getElementById('ticketsTbody');
             const wikiArticlesTbody = document.getElementById('wikiArticlesTbody');
+            const wikiCategoriesList = document.getElementById('wikiCategoriesList');
+            const categoryModal = document.getElementById('categoryModal');
+            const categoryForm = document.getElementById('categoryForm');
+            const categoryNameInput = document.getElementById('categoryName');
 
-            // --- 2. 导航/选项卡切换逻辑 ---
             const switchTab = (hash) => {
                 const targetHash = hash || window.location.hash || '#tickets';
-                
-                navContainer.querySelectorAll('.nav-link').forEach(link => {
-                    link.classList.toggle('active', link.hash === targetHash);
-                });
-
-                contentSections.forEach(section => {
-                    const sectionId = `#${section.id}`;
-                    const expectedId = `content-${targetHash.substring(1)}`;
-                    section.classList.toggle('active', sectionId.includes(expectedId));
-                });
-
-                if (targetHash === '#tickets' && !ticketsTbody.dataset.loaded) {
-                    loadTickets();
-                } else if (targetHash === '#wiki' && !wikiArticlesTbody.dataset.loaded) {
-                    loadWikiArticles();
-                }
+                navContainer.querySelectorAll('.nav-link').forEach(link => link.classList.toggle('active', link.hash === targetHash));
+                contentSections.forEach(section => section.classList.toggle('active', `#${section.id}` === `content-${targetHash.substring(1)}`));
+                if (targetHash === '#tickets') loadTickets();
+                else if (targetHash === '#wiki') loadWikiData();
             };
-            
+
             navContainer.addEventListener('click', (event) => {
                 const link = event.target.closest('.nav-link');
                 if (link) {
                     event.preventDefault();
                     const targetHash = link.hash;
-                    if (window.location.hash !== targetHash) {
-                        history.pushState(null, '', targetHash);
-                    }
+                    if (window.location.hash !== targetHash) history.pushState(null, '', targetHash);
                     switchTab(targetHash);
                 }
             });
-
             window.addEventListener('popstate', () => switchTab(window.location.hash));
+
+            const loadData = async (tbody, url, renderFn) => {
+                tbody.innerHTML = `<tr><td colspan="5">正在加载...</td></tr>`;
+                try {
+                    const response = await fetch(url, { headers });
+                    if (!response.ok) throw new Error('加载失败');
+                    const data = await response.json();
+                    tbody.innerHTML = '';
+                    if (data.length === 0) {
+                        tbody.innerHTML = `<tr><td colspan="5">没有数据。</td></tr>`;
+                    } else {
+                        data.forEach(item => tbody.innerHTML += renderFn(item));
+                    }
+                } catch (error) {
+                    tbody.innerHTML = `<tr><td colspan="5" class="error-message">${error.message}</td></tr>`;
+                }
+            };
             
-            // --- 3. 数据加载函数 ---
-            const loadTickets = async () => {
-                ticketsTbody.innerHTML = '<tr><td colspan="5">正在加载工单...</td></tr>';
+            const loadTickets = () => loadData(ticketsTbody, '/api/tickets', ticket => `<tr><td>${escapeHTML(ticket.name)}</td><td>${escapeHTML(ticket.email)}</td><td>${escapeHTML(ticket.subject)}</td><td class="message-cell">${escapeHTML(ticket.message)}</td><td>${new Date(ticket.submitted_at).toLocaleString('zh-CN')}</td></tr>`);
+            
+            const loadWikiData = () => { loadWikiArticles(); loadWikiCategories(); };
+            const loadWikiArticles = () => loadData(wikiArticlesTbody, '/api/admin/wiki/articles', article => `<tr><td>${escapeHTML(article.title)}</td><td>${article.category ? escapeHTML(article.category.name) : '未分类'}</td><td><a href="/admin-wiki-editor.html?id=${article.id}" class="button button-sm">编辑</a></td></tr>`);
+            
+            const loadWikiCategories = async () => {
+                wikiCategoriesList.innerHTML = '<p>正在加载...</p>';
                 try {
-                    const response = await fetch('/api/tickets', { headers });
+                    const response = await fetch('/api/admin/wiki/categories', { headers: {'Authorization': `Bearer ${accessToken}`} });
                     if (!response.ok) throw new Error('加载失败');
-                    const { tickets } = await response.json();
-                    
-                    ticketsTbody.innerHTML = '';
-                    if (tickets.length === 0) {
-                        ticketsTbody.innerHTML = '<tr><td colspan="5">当前没有工单。</td></tr>';
+                    const categories = await response.json();
+                    wikiCategoriesList.innerHTML = '';
+                    if (categories.length === 0) {
+                        wikiCategoriesList.innerHTML = '<p>没有分类。</p>';
                     } else {
-                        tickets.forEach(ticket => {
-                            const date = new Date(ticket.submitted_at).toLocaleString('zh-CN', { dateStyle: 'short', timeStyle: 'short' });
-                            ticketsTbody.innerHTML += `
-                                <tr>
-                                    <td>${escapeHTML(ticket.name)}</td>
-                                    <td>${escapeHTML(ticket.email)}</td>
-                                    <td>${escapeHTML(ticket.subject)}</td>
-                                    <td class="message-cell">${escapeHTML(ticket.message)}</td>
-                                    <td>${date}</td>
-                                </tr>
-                            `;
+                        categories.forEach(cat => {
+                            const catDiv = document.createElement('div');
+                            catDiv.className = 'list-group-item';
+                            catDiv.innerHTML = `<span>${escapeHTML(cat.name)}</span><button class="delete-btn" data-id="${cat.id}">&times;</button>`;
+                            wikiCategoriesList.appendChild(catDiv);
                         });
                     }
-                    ticketsTbody.dataset.loaded = 'true';
                 } catch (error) {
-                    ticketsTbody.innerHTML = `<tr><td colspan="5" class="error-message">${error.message}</td></tr>`;
+                    wikiCategoriesList.innerHTML = `<p class="error-message">${error.message}</p>`;
                 }
             };
 
-            const loadWikiArticles = async () => {
-                wikiArticlesTbody.innerHTML = '<tr><td colspan="3">正在加载文章...</td></tr>';
+            document.getElementById('addCategoryBtn').addEventListener('click', () => { categoryForm.reset(); categoryModal.classList.add('show'); });
+            const closeModal = () => categoryModal.classList.remove('show');
+            categoryModal.addEventListener('click', (e) => { if (e.target === categoryModal || e.target.closest('[data-dismiss="modal"]')) closeModal(); });
+            
+            document.getElementById('saveCategoryBtn').addEventListener('click', async () => {
+                const name = categoryNameInput.value.trim();
+                if (!name) return alert('分类名称不能为空');
                 try {
-                    const response = await fetch('/api/admin/wiki/articles', { headers });
-                    if (!response.ok) throw new Error('加载失败');
-                    const articles = await response.json();
-
-                    wikiArticlesTbody.innerHTML = '';
-                    if (articles.length === 0) {
-                        wikiArticlesTbody.innerHTML = '<tr><td colspan="3">还没有任何文章。</td></tr>';
-                    } else {
-                        articles.forEach(article => {
-                            wikiArticlesTbody.innerHTML += `
-                                <tr>
-                                    <td>${escapeHTML(article.title)}</td>
-                                    <td>${article.category ? escapeHTML(article.category.name) : '未分类'}</td>
-                                    <td><a href="/admin-wiki-editor.html?id=${article.id}" class="button button-sm">编辑</a></td>
-                                </tr>
-                            `;
-                        });
-                    }
-                    wikiArticlesTbody.dataset.loaded = 'true';
-                } catch (error) {
-                    wikiArticlesTbody.innerHTML = `<tr><td colspan="3" class="error-message">${error.message}</td></tr>`;
+                    const response = await fetch('/api/admin/wiki/categories', { method: 'POST', headers, body: JSON.stringify({ name }) });
+                    if (!response.ok) throw new Error('创建失败');
+                    closeModal();
+                    await loadWikiCategories();
+                } catch (error) { alert(error.message); }
+            });
+            
+            wikiCategoriesList.addEventListener('click', async (e) => {
+                const deleteBtn = e.target.closest('.delete-btn');
+                if (deleteBtn && confirm('确认删除这个分类吗？')) {
+                    try {
+                        const response = await fetch(`/api/admin/wiki/categories/${deleteBtn.dataset.id}`, { method: 'DELETE', headers: {'Authorization': `Bearer ${accessToken}`} });
+                        if (!response.ok) throw new Error('删除失败');
+                        await loadWikiCategories();
+                    } catch (error) { alert(error.message); }
                 }
-            };
-
-            // --- 4. 登出和辅助函数 ---
-            document.getElementById('logoutLink').addEventListener('click', (e) => {
-                e.preventDefault();
-                sessionStorage.removeItem('adminAccessToken');
-                window.location.href = '/login.html';
             });
 
-            function escapeHTML(str) {
-                return str ? str.toString().replace(/[&<>'"]/g, tag => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;'}[tag])) : '';
-            }
+            document.getElementById('logoutLink').addEventListener('click', (e) => { e.preventDefault(); sessionStorage.removeItem('adminAccessToken'); window.location.href = '/login.html'; });
+            function escapeHTML(str) { return str ? str.toString().replace(/[&<>'"]/g, tag => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;'}[tag])) : ''; }
 
-            // --- 5. 初始加载 ---
             switchTab();
         });
     </script>
