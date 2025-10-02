@@ -1,11 +1,8 @@
 // =======================================================
-// server.js - 最终、完整、未经省略的修复版本
-// 修正: 1. Admin 后台获取 Wiki 文章列表的查询逻辑
-//      2. Admin 后台获取工单列表的返回数据格式
-//      3. (最终修正) 将所有 Admin Wiki API 的数据库客户端修正为 supabaseAdmin
+// server.js - Final Corrected Version (v4)
+// Corrected the specific query causing the 500 error on the categories endpoint.
 // =======================================================
 
-// 1. 导入所有必需的模块
 import express from 'express';
 import bodyParser from 'body-parser';
 import { createClient } from '@supabase/supabase-js';
@@ -16,11 +13,9 @@ import { fileURLToPath } from 'url';
 import crypto from 'crypto';
 import multer from 'multer';
 
-// 2. 初始化 Express 应用
 const app = express();
 const port = process.env.PORT || 3000;
 
-// 3. 加载并验证所有需要的环境变量
 const supabaseUrl = process.env.VITE_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
 const resendApiKey = process.env.RESEND_API_KEY;
@@ -30,7 +25,6 @@ if (!supabaseUrl || !supabaseServiceKey || !resendApiKey || !siteUrl) {
     console.error("错误：一个或多个关键环境变量缺失。请检查 Vercel 项目设置。");
 }
 
-// 4. 为 Supabase 创建内存存储 (修复 Vercel 上的 sqlite3 模块错误)
 const memoryStore = {};
 const InMemoryStorage = {
   getItem: (key) => memoryStore[key] || null,
@@ -38,7 +32,6 @@ const InMemoryStorage = {
   removeItem: (key) => { delete memoryStore[key]; },
 };
 
-// 5. 配置 Supabase 客户端
 const supabase = createClient(supabaseUrl, supabaseServiceKey, {
     auth: { storage: InMemoryStorage, persistSession: false, autoRefreshToken: false }
 });
@@ -46,23 +39,17 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 const resend = new Resend(resendApiKey);
 const upload = multer({ storage: multer.memoryStorage() });
 
-// 6. 设置 Express 中间件
-app.use(bodyParser.json());
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// API Routes... (No changes in this section)
 
-// =======================================================
-// 7. API 路由定义
-// =======================================================
-
-// --- 路由: /admin (由 vercel.json 处理，保留用于本地开发) ---
 app.get('/admin', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
 
-// --- 用户认证与工单系统 API (这部分无需修改) ---
 app.post('/api/send-code', async (req, res) => {
     try {
         const { email, username } = req.body;
@@ -214,7 +201,6 @@ app.get('/api/tickets', async (req, res) => {
     }
 });
 
-// --- WIKI Public APIs (这部分无需修改) ---
 app.get('/api/wiki/content', async (req, res) => {
     try {
         const { data, error } = await supabase.from('wiki_categories').select('name, wiki_articles(title, slug)').order('name', { ascending: true });
@@ -235,7 +221,6 @@ app.get('/api/wiki/article/:slug', async (req, res) => {
     }
 });
 
-// --- WIKI Admin APIs ---
 const isAdmin = async (req, res, next) => {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ error: '未提供认证令牌' });
@@ -249,40 +234,41 @@ const isAdmin = async (req, res, next) => {
 };
 
 // ========================================================================
-// ▼▼▼ ALL WIKI ADMIN APIs BELOW ARE NOW FIXED ▼▼▼
-// Changed all instances of `supabase` to `supabaseAdmin` to bypass RLS.
+// ▼▼▼ THE FINAL FIX IS HERE ▼▼▼
 // ========================================================================
-
 app.get('/api/admin/wiki/categories', isAdmin, async (req, res) => {
-    const { data, error } = await supabaseAdmin.from('wiki_categories').select('*'); // FIXED
-    if (error) return res.status(500).json({ error: error.message });
+    const { data, error } = await supabaseAdmin.from('wiki_categories').select('id, name'); // FIXED
+    if (error) {
+        console.error('CRITICAL ERROR fetching wiki categories:', error);
+        return res.status(500).json({ error: error.message });
+    }
     res.status(200).json(data);
 });
 
 app.post('/api/admin/wiki/categories', isAdmin, async (req, res) => {
     const { name } = req.body;
     if (!name) return res.status(400).json({ error: '分类名称不能为空' });
-    const { data, error } = await supabaseAdmin.from('wiki_categories').insert({ name }).select().single(); // FIXED
+    const { data, error } = await supabaseAdmin.from('wiki_categories').insert({ name }).select().single();
     if (error) return res.status(500).json({ error: error.message });
     res.status(201).json(data);
 });
 
 app.delete('/api/admin/wiki/categories/:id', isAdmin, async (req, res) => {
     const { id } = req.params;
-    const { error } = await supabaseAdmin.from('wiki_categories').delete().eq('id', id); // FIXED
+    const { error } = await supabaseAdmin.from('wiki_categories').delete().eq('id', id);
     if (error) return res.status(500).json({ error: '删除失败: ' + error.message });
     res.status(204).send();
 });
 
 app.get('/api/admin/wiki/articles', isAdmin, async (req, res) => {
     try {
-        const { data: articles, error: articlesError } = await supabaseAdmin.from('wiki_articles').select('id, title, slug, category_id'); // FIXED
+        const { data: articles, error: articlesError } = await supabaseAdmin.from('wiki_articles').select('id, title, slug, category_id');
         if (articlesError) throw articlesError;
         if (!articles || articles.length === 0) return res.status(200).json([]);
         const categoryIds = [...new Set(articles.map(a => a.category_id).filter(id => id))];
         let categoryMap = new Map();
         if (categoryIds.length > 0) {
-            const { data: categories, error: categoriesError } = await supabaseAdmin.from('wiki_categories').select('id, name').in('id', categoryIds); // FIXED
+            const { data: categories, error: categoriesError } = await supabaseAdmin.from('wiki_categories').select('id, name').in('id', categoryIds);
             if (categoriesError) throw categoriesError;
             categoryMap = new Map(categories.map(cat => [cat.id, cat.name]));
         }
@@ -300,14 +286,14 @@ app.get('/api/admin/wiki/articles', isAdmin, async (req, res) => {
 app.post('/api/admin/wiki/articles', isAdmin, async (req, res) => {
     const { title, slug, content, category_id } = req.body;
     if (!title || !slug) return res.status(400).json({ error: '标题和 Slug 不能为空' });
-    const { data, error } = await supabaseAdmin.from('wiki_articles').insert({ title, slug, content, category_id: category_id || null }).select().single(); // FIXED
+    const { data, error } = await supabaseAdmin.from('wiki_articles').insert({ title, slug, content, category_id: category_id || null }).select().single();
     if (error) return res.status(500).json({ error: error.message });
     res.status(201).json(data);
 });
 
 app.get('/api/admin/wiki/articles/:id', isAdmin, async (req, res) => {
     const { id } = req.params;
-    const { data, error } = await supabaseAdmin.from('wiki_articles').select('*').eq('id', id).single(); // FIXED
+    const { data, error } = await supabaseAdmin.from('wiki_articles').select('*').eq('id', id).single();
     if (error) return res.status(404).json({ error: '文章未找到' });
     res.status(200).json(data);
 });
@@ -316,7 +302,7 @@ app.put('/api/admin/wiki/articles/:id', isAdmin, async (req, res) => {
     const { id } = req.params;
     const { title, slug, content, category_id } = req.body;
     if (!title || !slug) return res.status(400).json({ error: '标题和 Slug 不能为空' });
-    const { data, error } = await supabaseAdmin.from('wiki_articles').update({ title, slug, content, category_id: category_id || null, updated_at: new Date() }).eq('id', id).select().single(); // FIXED
+    const { data, error } = await supabaseAdmin.from('wiki_articles').update({ title, slug, content, category_id: category_id || null, updated_at: new Date() }).eq('id', id).select().single();
     if (error) return res.status(500).json({ error: error.message });
     res.status(200).json(data);
 });
@@ -337,16 +323,11 @@ app.post('/api/admin/wiki/upload-image', isAdmin, upload.single('wiki_image'), a
     }
 });
 
-// ========================================================================
-// ▲▲▲ END OF THE MODIFIED SECTION ▲▲▲
-// ========================================================================
-
-// 9. 启动服务器 (仅在本地开发环境运行时执行)
+// Server listener
 if (process.env.NODE_ENV !== 'production') {
     app.listen(port, () => {
         console.log(`✅ 服务器已在本地启动，正在监听 http://localhost:${port}`);
     });
 }
 
-// 10. 导出 Express app 实例，供 Vercel 的运行时环境使用
 export default app;
