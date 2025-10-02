@@ -1,6 +1,7 @@
 // =======================================================
 // server.js - 最终、完整、未经省略的修复版本
-// 修正: Admin 后台获取 Wiki 文章列表的查询逻辑
+// 修正: 1. Admin 后台获取 Wiki 文章列表的查询逻辑
+//      2. Admin 后台获取工单列表的返回数据格式
 // =======================================================
 
 // 1. 导入所有必需的模块
@@ -181,6 +182,12 @@ app.post('/api/tickets', async (req, res) => {
         res.status(500).json({ error: '服务器内部错误' });
     }
 });
+
+// ========================================================================
+// ▼▼▼ THIS IS THE SECOND MODIFIED SECTION ▼▼▼
+// Changed the final line from res.json({ tickets: ... }) to res.json(...)
+// to send a direct array, which the frontend expects.
+// ========================================================================
 app.get('/api/tickets', async (req, res) => {
     try {
         const authHeader = req.headers.authorization;
@@ -191,9 +198,9 @@ app.get('/api/tickets', async (req, res) => {
         const { data: profile } = await supabaseAdmin.from('profiles').select('role').eq('id', user.id).single();
         if (!profile || profile.role !== 'admin') return res.status(403).json({ error: '权限不足' });
         const { data: tickets } = await supabaseAdmin.from('tickets').select('*, user_id').order('submitted_at', { ascending: false });
-        if (!tickets || tickets.length === 0) return res.status(200).json({ tickets: [] });
+        if (!tickets || tickets.length === 0) return res.status(200).json([]);
         const userIds = [...new Set(tickets.map(t => t.user_id).filter(id => id))];
-        if (userIds.length === 0) return res.status(200).json({ tickets: tickets.map(t => ({ ...t, name: '匿名用户', email: 'N/A' })) });
+        if (userIds.length === 0) return res.status(200).json(tickets.map(t => ({ ...t, name: '匿名用户', email: 'N/A' })));
         const { data: profiles } = await supabaseAdmin.from('profiles').select('id, username').in('id', userIds);
         const { data: users } = await supabaseAdmin.auth.admin.listUsers();
         const userInfoMap = new Map();
@@ -205,12 +212,15 @@ app.get('/api/tickets', async (req, res) => {
             const info = userInfoMap.get(ticket.user_id);
             return { ...ticket, name: info?.username || '匿名用户', email: info?.email || 'N/A' };
         });
-        res.status(200).json({ tickets: ticketsWithUserInfo });
+        res.status(200).json(ticketsWithUserInfo);
     } catch (error) {
         console.error('/api/tickets[GET] 接口错误:', error);
         res.status(500).json({ error: '获取工单数据失败' });
     }
 });
+// ========================================================================
+// ▲▲▲ END OF THE SECOND MODIFIED SECTION ▲▲▲
+// ========================================================================
 
 // --- WIKI Public APIs ---
 app.get('/api/wiki/content', async (req, res) => {
@@ -268,45 +278,24 @@ app.delete('/api/admin/wiki/categories/:id', isAdmin, async (req, res) => {
 });
 
 // ========================================================================
-// ▼▼▼ THIS IS THE MODIFIED SECTION ▼▼▼
-// The original logic for this API endpoint was replaced with the following
-// more robust code to correctly fetch and format the Wiki articles list
-// for the admin panel.
+// ▼▼▼ THIS IS THE FIRST MODIFIED SECTION (FROM PREVIOUSLY) ▼▼▼
 // ========================================================================
 app.get('/api/admin/wiki/articles', isAdmin, async (req, res) => {
     try {
-        // 步骤 1: 先查询所有的文章，并包含它们的 category_id
         const { data: articles, error: articlesError } = await supabase.from('wiki_articles').select('id, title, slug, category_id');
         if (articlesError) throw articlesError;
-
-        // 如果没有文章，直接返回空数组
         if (!articles || articles.length === 0) return res.status(200).json([]);
-        
-        // 步骤 2: 收集所有文章中用到的不重复的 category_id
         const categoryIds = [...new Set(articles.map(a => a.category_id).filter(id => id))];
-        
         let categoryMap = new Map();
-        
-        // 步骤 3: 如果存在分类ID，则用一次查询获取所有这些分类的名称
         if (categoryIds.length > 0) {
             const { data: categories, error: categoriesError } = await supabase.from('wiki_categories').select('id, name').in('id', categoryIds);
             if (categoriesError) throw categoriesError;
-            
-            // 创建一个从 ID 到名称的映射，方便后续查找
             categoryMap = new Map(categories.map(cat => [cat.id, cat.name]));
         }
-        
-        // 步骤 4: 组合文章和分类数据，生成前端期望的、绝对安全的格式
         const articlesWithCategory = articles.map(article => ({
-            id: article.id,
-            title: article.title,
-            slug: article.slug,
-            category: { 
-                name: categoryMap.get(article.category_id) || null // 使用映射安全地查找分类名
-            }
+            id: article.id, title: article.title, slug: article.slug,
+            category: { name: categoryMap.get(article.category_id) || null }
         }));
-        
-        // 返回最终组合好的数据
         res.status(200).json(articlesWithCategory);
     } catch (error) {
         console.error('Admin GET /api/admin/wiki/articles error:', error);
@@ -314,7 +303,7 @@ app.get('/api/admin/wiki/articles', isAdmin, async (req, res) => {
     }
 });
 // ========================================================================
-// ▲▲▲ END OF THE MODIFIED SECTION ▲▲▲
+// ▲▲▲ END OF THE FIRST MODIFIED SECTION ▲▲▲
 // ========================================================================
 
 app.post('/api/admin/wiki/articles', isAdmin, async (req, res) => {
