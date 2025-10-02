@@ -241,7 +241,16 @@
             const switchTab = (hash) => {
                 const targetHash = hash || window.location.hash || '#tickets';
                 navContainer.querySelectorAll('.nav-link').forEach(link => link.classList.toggle('active', link.hash === targetHash));
-                contentSections.forEach(section => section.classList.toggle('active', `#${section.id}` === `content-${targetHash.substring(1)}`));
+                
+                // ========================================================================
+                // ▼▼▼ THE FINAL FIX IS HERE ▼▼▼
+                // The extra '#' in the original code has been removed.
+                // ========================================================================
+                contentSections.forEach(section => section.classList.toggle('active', section.id === `content-${targetHash.substring(1)}`));
+                // ========================================================================
+                // ▲▲▲ END OF THE FINAL FIX ▲▲▲
+                // ========================================================================
+
                 if (targetHash === '#tickets') loadTickets();
                 else if (targetHash === '#wiki') loadWikiData();
             };
