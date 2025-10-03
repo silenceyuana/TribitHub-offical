@@ -97,7 +97,7 @@ app.post('/api/password/send-reset-code', async (req, res) => {
             const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
             await supabase.from('verification_codes').insert({ email, code: verificationCode, expires_at: expiresAt, type: 'password_reset' });
             await resend.emails.send({
-                from: 'TribitHub 安全中心 <message@tribit.top>', to: [email], subject: `您的 TribitHub 密码重置验证码是 ${verificationCode}`,
+                from: 'TribitHub 安全中心 <message@betteryuan.cn>', to: [email], subject: `您的 TribitHub 密码重置验证码是 ${verificationCode}`,
                 html: `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f0f2f5; padding: 20px;"><div style="max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);"><div style="padding: 40px; text-align: left;"><h1 style="font-size: 28px; font-weight: 700; color: #111; margin: 0 0 20px;">TribitHub</h1><p style="font-size: 18px; color: #333; margin: 0 0 10px;">${username},</p><p style="font-size: 16px; color: #555; line-height: 1.6;">我们收到了一个重置您账户密码的请求。如果您发起了此请求，请使用以下验证码来完成操作：</p><div style="background-color: #1d2026; color: #ffffff; border-radius: 6px; margin: 30px auto; padding: 20px; text-align: center;"><p style="font-size: 14px; margin: 0 0 10px; color: #8b949e;">您的密码重置验证码是</p><p style="font-size: 42px; font-weight: 700; letter-spacing: 10px; margin: 0; line-height: 1;">${verificationCode}</p></div><h3 style="font-size: 20px; font-weight: 600; color: #111; margin-top: 40px; border-top: 1px solid #e0e0e0; padding-top: 30px;">不是您？</h3><p style="font-size: 14px; color: #555; line-height: 1.6;">如果您没有请求重置密码，请立即忽略并删除此邮件，您的账户依然安全。</p></div></div></div>`,
             });
         }
@@ -161,7 +161,7 @@ app.post('/api/tickets', async (req, res) => {
         if (!subject || !message) return res.status(400).json({ error: '主题和内容不能为空' });
         const { data: newTicket } = await supabase.from('tickets').insert({ subject, message, user_id: user.id }).select().single();
         await resend.emails.send({
-            from: 'TribitHub 支持 <message@tribit.top>', to: [user.email], subject: `您的工单 #${newTicket.id} 已收到`,
+            from: 'TribitHub 支持 <message@betteryuan.cn>', to: [user.email], subject: `您的工单 #${newTicket.id} 已收到`,
             html: `<p>你好 ${user.user_metadata.username || ''}, 您的工单已提交成功。</p>`,
         });
         res.status(200).json({ message: '工单提交成功！', ticket: newTicket });
