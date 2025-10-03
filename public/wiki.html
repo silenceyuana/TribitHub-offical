@@ -55,6 +55,12 @@
                         <li><a href="wiki.html">Wiki</a></li>
                         <li><a href="login-user.html">注册/登录</a></li>
                     </ul>
+                    <!-- 汉堡菜单按钮 -->
+                    <button id="headerToggle" class="header-toggle" aria-label="Menu">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </button>
                 </div>
             </div>
         </header>
@@ -77,6 +83,9 @@
     </div>
     
     <script src="dist/js/auth-ui.js" defer></script>
+
+    <!-- 负责汉堡菜单功能的脚本 -->
+    <script src="dist/js/nav.js"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
