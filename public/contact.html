@@ -4,10 +4,9 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>提交工单 - TribitHub</title>
+    <title>联系我们 - TribitHub</title>
     
     <link rel="stylesheet" href="dist/css/style.css">
-    <!-- 主题加载脚本已被移除 -->
 
     <style>
         .form-status {
@@ -16,6 +15,29 @@
             font-size: 16px;
             min-height: 24px;
         }
+        /* ▼▼▼ 新增：联系信息区域的样式 ▼▼▼ */
+        .contact-info-section {
+            max-width: 600px;
+            margin: 4rem auto 0;
+            padding-top: 2rem;
+            border-top: 1px solid var(--border-color);
+            text-align: center;
+        }
+        .contact-info-section h3 {
+            font-size: 1.5rem;
+            color: var(--text-primary);
+            margin-bottom: 1.5rem;
+        }
+        .contact-info-section p {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            line-height: 1.8;
+        }
+        .contact-info-section .contact-value {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        /* ▲▲▲ 样式结束 ▲▲▲ */
     </style>
 </head>
 <body class="is-boxed has-animations">
@@ -33,10 +55,8 @@
                     <ul id="headerLinks" class="header-links list-reset">
                         <li><a href="index.html">首页</a></li>
                         <li><a href="pricing.html">我们的介绍</a></li>
-                        <li><a href="contact.html">提交工单</a></li>
-                        <li><a href="wiki.html">Wiki</a></li>
+                        <li><a href="contact.html">联系我们</a></li>
                         <li><a href="login-user.html">注册/登录</a></li>
-                        <!-- 主题切换开关的 li 已被移除 -->
                     </ul>
                     <button id="headerToggle" class="header-toggle" aria-label="Menu">
                         <span></span>
@@ -53,7 +73,7 @@
                     <div class="section-inner">
                         <div class="section-header text-center">
                             <h2 class="section-title mt-0">提交新工单</h2>
-                            <p class="section-paragraph">请详细描述您的需求，我们收到后会尽快处理。</p>
+                            <p class="section-paragraph">对于复杂的项目需求，我们建议您通过工单系统提交，以便我们系统地跟进。请详细描述您的需求，我们收到后会尽快处理。</p>
                         </div>
                         
                         <div class="contact-wrap">
@@ -80,6 +100,21 @@
                                 <div id="formStatus" class="form-status"></div>
                             </div>
                         </div>
+
+                        <!-- ▼▼▼ 新增：我们的联系方式区域 ▼▼▼ -->
+                        <div class="contact-info-section">
+                            <h3>或者，通过以下方式直接联系我们</h3>
+                            <p>
+                                对于售前咨询或简单问题，欢迎直接联系我们的客服：<br>
+                                **QQ**: <span class="contact-value">122225554</span><br>
+                                **Email**: <span class="contact-value">silenceyuan2018@gmail.com</span>
+                            </p>
+                            <p style="font-size: 0.9rem; margin-top: 1.5rem;">
+                                工作时间：周一至周五 9:00 - 18:00
+                            </p>
+                        </div>
+                        <!-- ▲▲▲ 区域结束 ▲▲▲ -->
+
                     </div>
                 </div>
             </section>
