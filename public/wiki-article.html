@@ -18,7 +18,7 @@
         })();
     </script>
 
-    <!-- 3. 针对此页面的专属样式，用于美化渲染后的 Markdown 内容 -->
+    <!-- 3. 针对此页面的专属样式 -->
     <style>
         .article-container {
             padding-top: 2rem;
@@ -87,6 +87,11 @@
             font-size: 85%;
             border: 1px solid var(--border-color);
         }
+        /* 新增：返回按钮容器样式 */
+        .back-button-container {
+            text-align: center;
+            margin-top: 3rem;
+        }
     </style>
 </head>
 <body class="is-boxed">
@@ -101,21 +106,34 @@
                             </a>
                         </h1>
                     </div>
-                    <ul class="header-links list-reset">
+                    <ul id="headerLinks" class="header-links list-reset">
                         <li><a href="index.html">首页</a></li>
                         <li><a href="pricing.html">我们的介绍</a></li>
                         <li><a href="contact.html">提交工单</a></li>
+                        <li><a href="wiki.html">Wiki</a></li>
                         <li><a href="login-user.html">注册/登录</a></li>
                     </ul>
+                    <!-- 汉堡菜单按钮 -->
+                    <button id="headerToggle" class="header-toggle" aria-label="Menu">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </button>
                 </div>
             </div>
         </header>
 
         <main>
             <section class="section">
+                <!-- 文章内容容器 -->
                 <div class="container-sm article-container" id="article-container">
                     <h1 class="h2">正在加载文章...</h1>
                     <p>请稍候</p>
+                </div>
+
+                <!-- 返回目录按钮 -->
+                <div class="container-sm back-button-container">
+                    <a href="/wiki.html" class="button">返回文章目录</a>
                 </div>
             </section>
         </main>
@@ -129,17 +147,16 @@
         </footer>
     </div>
     
-    <!-- 全局认证 UI 脚本，用于处理右上角的用户状态显示 -->
+    <!-- 全局认证 UI 脚本 -->
     <script src="dist/js/auth-ui.js" defer></script>
+
+    <!-- 负责汉堡菜单功能的脚本 -->
+    <script src="dist/js/nav.js"></script>
 
     <!-- 引入 Marked.js 库，用于将 Markdown 转换为 HTML -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
     <script>
-        // =======================================================
-        // wiki-article.html - 最终、完整、未经省略的客户端脚本
-        // =======================================================
-
         document.addEventListener('DOMContentLoaded', async () => {
             const container = document.getElementById('article-container');
 

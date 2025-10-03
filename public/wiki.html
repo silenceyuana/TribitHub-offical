@@ -36,6 +36,13 @@
         .article-list a:hover {
             color: var(--color-primary);
         }
+        /* ▼▼▼ 新增：返回按钮容器样式 ▼▼▼ */
+        .back-button-container {
+            text-align: center;
+            margin-top: 3rem;
+            padding-bottom: 2rem; /* 增加一些底部间距 */
+        }
+        /* ▲▲▲ 样式结束 ▲▲▲ */
     </style>
 </head>
 <body class="is-boxed">
@@ -67,9 +74,16 @@
 
         <main>
             <section class="section">
+                <!-- 文章列表容器 -->
                 <div class="wiki-container" id="wiki-list-container">
                     <h1 class="h2">正在加载文章列表...</h1>
                 </div>
+
+                <!-- ▼▼▼ 新增：返回首页按钮 ▼▼▼ -->
+                <div class="container-sm back-button-container">
+                    <a href="/index.html" class="button">返回首页</a>
+                </div>
+                <!-- ▲▲▲ 按钮结束 ▲▲▲ -->
             </section>
         </main>
 
