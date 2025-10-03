@@ -21,7 +21,8 @@
     <div class="editor-container">
         <div class="page-header">
             <h1 class="h3" id="page-title">创建新文章</h1>
-            <a href="/admin-wiki.html" class="button button-sm">返回列表</a>
+            <!-- 【修正建议】返回列表的链接也一并修正 -->
+            <a href="/admin.html#wiki" class="button button-sm">返回列表</a>
         </div>
 
         <form id="articleForm">
@@ -153,10 +154,16 @@
                     statusMessage.textContent = '保存成功！';
                     statusMessage.className = 'status-message success-message';
                     
-                    // 保存成功后，跳转回后台 Wiki 列表页
+                    // ========================================================================
+                    // ▼▼▼ THE FINAL FIX IS HERE ▼▼▼
+                    // Changed the redirect URL to the correct admin page with the wiki hash.
+                    // ========================================================================
                     setTimeout(() => {
-                        window.location.href = '/admin-wiki.html';
+                        window.location.href = '/admin.html#wiki';
                     }, 1000);
+                    // ========================================================================
+                    // ▲▲▲ END OF THE FINAL FIX ▲▲▲
+                    // ========================================================================
 
                 } catch (error) {
                     statusMessage.textContent = `保存失败: ${error.message}`;
