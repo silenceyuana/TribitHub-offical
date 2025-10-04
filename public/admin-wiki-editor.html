@@ -113,12 +113,61 @@
                 'Content-Type': 'application/json'
             };
 
+            function selectAndUploadImage(editor) {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = 'image/*';
+                
+                input.onchange = async () => {
+                    if (!input.files || input.files.length === 0) return;
+                    const file = input.files[0];
+                    const cm = editor.codemirror;
+                    
+                    const placeholder = `![正在上传 ${file.name}...]()`;
+                    cm.replaceSelection(placeholder);
+
+                    const formData = new FormData();
+                    formData.append('wiki_image', file);
+                    try {
+                        const response = await fetch('/api/admin/wiki/upload-image', {
+                            method: 'POST',
+                            headers: { 'Authorization': `Bearer ${accessToken}` },
+                            body: formData
+                        });
+                        const result = await response.json();
+                        if (!response.ok) throw new Error(result.error);
+                        
+                        const newText = `![${file.name}](${result.imageUrl})`;
+                        cm.setValue(cm.getValue().replace(placeholder, newText));
+
+                    } catch (error) {
+                        console.error("图片上传失败:", error);
+                        cm.setValue(cm.getValue().replace(placeholder, `![上传失败: ${error.message}]()`));
+                    }
+                };
+                
+                input.click();
+            }
+
             const simplemde = new SimpleMDE({
                 element: document.getElementById("content"),
                 spellChecker: false,
-                uploadImage: true,
-                imageDrop: true,      // 启用拖拽上传
-                imagePaste: true,     // 确保粘贴上传也启用
+                toolbar: [
+                    "bold", "italic", "heading", "|", 
+                    "quote", "unordered-list", "ordered-list", "|", 
+                    "link", 
+                    {
+                        name: "image",
+                        action: selectAndUploadImage,
+                        className: "fa fa-picture-o",
+                        title: "上传图片",
+                    },
+                    "|",
+                    "preview", "side-by-side", "fullscreen", "|",
+                    "guide"
+                ],
+                imageDrop: true,
+                imagePaste: true,
                 imageUploadFunction: async (file, onSuccess, onError) => {
                     const formData = new FormData();
                     formData.append('wiki_image', file);
