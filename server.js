@@ -1,6 +1,6 @@
 // =======================================================
-// server.js - Final Corrected Version (v6)
-// Supports the separate editor page and automated chapter generation.
+// server.js - Final Version with Cloudinary Image Upload
+// This version includes all features discussed.
 // =======================================================
 
 import express from 'express';
@@ -12,44 +12,62 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import crypto from 'crypto';
 import multer from 'multer';
+import { v2 as cloudinary } from 'cloudinary';
 
 const app = express();
 const port = process.env.PORT || 3000;
 
+// Environment Variables Validation
 const supabaseUrl = process.env.VITE_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
 const resendApiKey = process.env.RESEND_API_KEY;
 const siteUrl = process.env.SITE_URL;
+const cloudinaryCloudName = process.env.CLOUDINARY_CLOUD_NAME;
+const cloudinaryApiKey = process.env.CLOUDINARY_API_KEY;
+const cloudinaryApiSecret = process.env.CLOUDINARY_API_SECRET;
 
-if (!supabaseUrl || !supabaseServiceKey || !resendApiKey || !siteUrl) {
+if (!supabaseUrl || !supabaseServiceKey || !resendApiKey || !siteUrl || !cloudinaryCloudName || !cloudinaryApiKey || !cloudinaryApiSecret) {
     console.error("错误：一个或多个关键环境变量缺失。请检查 Vercel 项目设置。");
 }
 
-const memoryStore = {};
-const InMemoryStorage = {
-  getItem: (key) => memoryStore[key] || null,
-  setItem: (key, value) => { memoryStore[key] = value; },
-  removeItem: (key) => { delete memoryStore[key]; },
-};
-
-const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-    auth: { storage: InMemoryStorage, persistSession: false, autoRefreshToken: false }
-});
+// Client Initializations
+const supabase = createClient(supabaseUrl, supabaseServiceKey);
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 const resend = new Resend(resendApiKey);
+
+cloudinary.config({ 
+  cloud_name: cloudinaryCloudName, 
+  api_key: cloudinaryApiKey, 
+  api_secret: cloudinaryApiSecret
+});
+
 const upload = multer({ storage: multer.memoryStorage() });
 
+// Middleware
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// API Routes...
+// Middleware to check for Admin role
+const isAdmin = async (req, res, next) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ error: '未提供认证令牌' });
+    const token = authHeader.split(' ')[1];
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+    if (error || !user) return res.status(401).json({ error: '无效的令牌' });
+    const { data: profile } = await supabaseAdmin.from('profiles').select('role').eq('id', user.id).single();
+    if (!profile || profile.role !== 'admin') return res.status(403).json({ error: '权限不足' });
+    req.user = user;
+    next();
+};
 
-app.get('/admin', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'login.html'));
-});
 
+// =======================================================
+// API Routes
+// =======================================================
+
+// --- User Authentication & Management ---
 app.post('/api/send-code', async (req, res) => {
     try {
         const { email, username } = req.body;
@@ -60,8 +78,8 @@ app.post('/api/send-code', async (req, res) => {
         const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
         await supabase.from('verification_codes').insert({ email, code: verificationCode, expires_at: expiresAt, type: 'signup' });
         await resend.emails.send({
-            from: 'TribitHub <message@tribit.top>', to: [email], subject: `您的 TribitHub 注册验证码是 ${verificationCode}`,
-            html: `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f0f2f5; padding: 20px;"><div style="max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);"><div style="padding: 40px; text-align: left;"><h1 style="font-size: 28px; font-weight: 700; color: #111; margin: 0 0 20px;">TribitHub</h1><p style="font-size: 18px; color: #333; margin: 0 0 10px;">${username || '你好'},</p><p style="font-size: 16px; color: #555; line-height: 1.6;">看起来您正在尝试创建一个新的 TribitHub 账户。这是完成您注册所需的验证码：</p><div style="background-color: #1d2026; color: #ffffff; border-radius: 6px; margin: 30px auto; padding: 20px; text-align: center;"><p style="font-size: 14px; margin: 0 0 10px; color: #8b949e;">您的验证码是</p><p style="font-size: 42px; font-weight: 700; letter-spacing: 10px; margin: 0; line-height: 1;">${verificationCode}</p></div><h3 style="font-size: 20px; font-weight: 600; color: #111; margin-top: 40px; border-top: 1px solid #e0e0e0; padding-top: 30px;">这不是您？</h3><p style="font-size: 14px; color: #555; line-height: 1.6;">如果您没有尝试创建此账户，可以安全地忽略此邮件。为安全起见，请勿与任何人分享此验证码。</p></div></div></div>`,
+            from: 'TribitHub <message@betteryuan.cn>', to: [email], subject: `您的 TribitHub 注册验证码是 ${verificationCode}`,
+            html: `<p>你好, 这是您的验证码: <strong>${verificationCode}</strong></p>`,
         });
         res.status(200).json({ message: '验证码已成功发送至您的邮箱！' });
     } catch (error) {
@@ -69,6 +87,7 @@ app.post('/api/send-code', async (req, res) => {
         res.status(500).json({ error: '发送验证码失败' });
     }
 });
+
 app.post('/api/register', async (req, res) => {
     try {
         const { username, email, code, password } = req.body;
@@ -85,6 +104,7 @@ app.post('/api/register', async (req, res) => {
         res.status(500).json({ error: '注册失败' });
     }
 });
+
 app.post('/api/password/send-reset-code', async (req, res) => {
     try {
         const { email } = req.body;
@@ -92,13 +112,12 @@ app.post('/api/password/send-reset-code', async (req, res) => {
         const { data: { users } } = await supabase.auth.admin.listUsers();
         const existingUser = users.find(user => user.email === email);
         if (existingUser) {
-            const username = existingUser.user_metadata.username || '用户';
             const verificationCode = crypto.randomInt(100000, 999999).toString();
             const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
             await supabase.from('verification_codes').insert({ email, code: verificationCode, expires_at: expiresAt, type: 'password_reset' });
             await resend.emails.send({
-                from: 'TribitHub 安全中心 <message@tribit.top>', to: [email], subject: `您的 TribitHub 密码重置验证码是 ${verificationCode}`,
-                html: `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f0f2f5; padding: 20px;"><div style="max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);"><div style="padding: 40px; text-align: left;"><h1 style="font-size: 28px; font-weight: 700; color: #111; margin: 0 0 20px;">TribitHub</h1><p style="font-size: 18px; color: #333; margin: 0 0 10px;">${username},</p><p style="font-size: 16px; color: #555; line-height: 1.6;">我们收到了一个重置您账户密码的请求。如果您发起了此请求，请使用以下验证码来完成操作：</p><div style="background-color: #1d2026; color: #ffffff; border-radius: 6px; margin: 30px auto; padding: 20px; text-align: center;"><p style="font-size: 14px; margin: 0 0 10px; color: #8b949e;">您的密码重置验证码是</p><p style="font-size: 42px; font-weight: 700; letter-spacing: 10px; margin: 0; line-height: 1;">${verificationCode}</p></div><h3 style="font-size: 20px; font-weight: 600; color: #111; margin-top: 40px; border-top: 1px solid #e0e0e0; padding-top: 30px;">不是您？</h3><p style="font-size: 14px; color: #555; line-height: 1.6;">如果您没有请求重置密码，请立即忽略并删除此邮件，您的账户依然安全。</p></div></div></div>`,
+                from: 'TribitHub 安全中心 <message@betteryuan.cn>', to: [email], subject: `您的密码重置验证码是 ${verificationCode}`,
+                html: `<p>你好, 这是您的密码重置验证码: <strong>${verificationCode}</strong></p>`,
             });
         }
         res.status(200).json({ message: '如果您的邮箱已注册，您将会收到一封包含验证码的邮件。' });
@@ -107,6 +126,7 @@ app.post('/api/password/send-reset-code', async (req, res) => {
         res.status(500).json({ error: '发送验证码失败' });
     }
 });
+
 app.post('/api/password/reset', async (req, res) => {
     try {
         const { email, code, newPassword } = req.body;
@@ -123,6 +143,7 @@ app.post('/api/password/reset', async (req, res) => {
         res.status(500).json({ error: '密码重置失败' });
     }
 });
+
 app.post('/api/login/password', async (req, res) => {
     try {
         const { email, password } = req.body;
@@ -135,6 +156,7 @@ app.post('/api/login/password', async (req, res) => {
         res.status(500).json({ error: '服务器内部错误' });
     }
 });
+
 app.post('/login', async (req, res) => {
     try {
         const { email, password } = req.body;
@@ -142,14 +164,16 @@ app.post('/login', async (req, res) => {
         const { data: authData, error: authError } = await supabase.auth.signInWithPassword({ email, password });
         if (authError || !authData.user) return res.status(401).json({ error: '邮箱或密码不正确' });
         const { data: profile } = await supabaseAdmin.from('profiles').select('role').eq('id', authData.user.id).single();
-        if (!profile) return res.status(500).json({ error: '无法获取用户角色信息' });
-        if (profile.role !== 'admin') return res.status(403).json({ error: '权限不足' });
+        if (!profile || profile.role !== 'admin') return res.status(403).json({ error: '权限不足' });
         res.status(200).json({ message: '管理员登录成功', accessToken: authData.session.access_token });
     } catch (error) {
         console.error('/login 接口错误:', error);
         res.status(500).json({ error: '管理员登录失败' });
     }
 });
+
+
+// --- Tickets System ---
 app.post('/api/tickets', async (req, res) => {
     try {
         const authHeader = req.headers.authorization;
@@ -161,7 +185,7 @@ app.post('/api/tickets', async (req, res) => {
         if (!subject || !message) return res.status(400).json({ error: '主题和内容不能为空' });
         const { data: newTicket } = await supabase.from('tickets').insert({ subject, message, user_id: user.id }).select().single();
         await resend.emails.send({
-            from: 'TribitHub 支持 <message@tribit.top>', to: [user.email], subject: `您的工单 #${newTicket.id} 已收到`,
+            from: 'TribitHub 支持 <message@betteryuan.cn>', to: [user.email], subject: `您的工单 #${newTicket.id} 已收到`,
             html: `<p>你好 ${user.user_metadata.username || ''}, 您的工单已提交成功。</p>`,
         });
         res.status(200).json({ message: '工单提交成功！', ticket: newTicket });
@@ -170,15 +194,9 @@ app.post('/api/tickets', async (req, res) => {
         res.status(500).json({ error: '服务器内部错误' });
     }
 });
-app.get('/api/tickets', async (req, res) => {
+
+app.get('/api/tickets', isAdmin, async (req, res) => {
     try {
-        const authHeader = req.headers.authorization;
-        if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ error: '未提供认证令牌' });
-        const token = authHeader.split(' ')[1];
-        const { data: { user }, error } = await supabase.auth.getUser(token);
-        if (error || !user) return res.status(401).json({ error: '无效的令牌' });
-        const { data: profile } = await supabaseAdmin.from('profiles').select('role').eq('id', user.id).single();
-        if (!profile || profile.role !== 'admin') return res.status(403).json({ error: '权限不足' });
         const { data: tickets } = await supabaseAdmin.from('tickets').select('*, user_id').order('submitted_at', { ascending: false });
         if (!tickets || tickets.length === 0) return res.status(200).json([]);
         const userIds = [...new Set(tickets.map(t => t.user_id).filter(id => id))];
@@ -201,6 +219,7 @@ app.get('/api/tickets', async (req, res) => {
     }
 });
 
+
 // --- WIKI Public APIs ---
 app.get('/api/wiki/list', async (req, res) => {
     try {
@@ -211,37 +230,32 @@ app.get('/api/wiki/list', async (req, res) => {
         res.status(500).json({ error: '获取 Wiki 列表失败' });
     }
 });
+
 app.get('/api/wiki/article/:slug', async (req, res) => {
     try {
         const { slug } = req.params;
         const { data, error } = await supabase.from('wiki_articles').select('title, content, updated_at, category:wiki_categories(name)').eq('slug', slug).single();
-        if (error || !data) throw new Error('文章未找到');
+        if (error || !data) return res.status(404).json({ error: '文章未找到' });
         res.status(200).json(data);
     } catch (error) {
         res.status(404).json({ error: error.message });
     }
 });
 
-const isAdmin = async (req, res, next) => {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ error: '未提供认证令牌' });
-    const token = authHeader.split(' ')[1];
-    const { data: { user }, error } = await supabase.auth.getUser(token);
-    if (error || !user) return res.status(401).json({ error: '无效的令牌' });
-    const { data: profile } = await supabaseAdmin.from('profiles').select('role').eq('id', user.id).single();
-    if (!profile || profile.role !== 'admin') return res.status(403).json({ error: '权限不足' });
-    req.user = user;
-    next();
-};
 
 // --- WIKI Admin APIs ---
 app.get('/api/admin/wiki/categories', isAdmin, async (req, res) => {
     const { data, error } = await supabaseAdmin.from('wiki_categories').select('id, name');
-    if (error) {
-        console.error('CRITICAL ERROR fetching wiki categories:', error);
-        return res.status(500).json({ error: error.message });
-    }
+    if (error) return res.status(500).json({ error: error.message });
     res.status(200).json(data);
+});
+
+app.post('/api/admin/wiki/categories', isAdmin, async (req, res) => {
+    const { name } = req.body;
+    if (!name) return res.status(400).json({ error: '分类名称不能为空' });
+    const { data, error } = await supabaseAdmin.from('wiki_categories').insert({ name }).select().single();
+    if (error) return res.status(500).json({ error: error.message });
+    res.status(201).json(data);
 });
 
 app.delete('/api/admin/wiki/categories/:id', isAdmin, async (req, res) => {
@@ -281,7 +295,6 @@ app.get('/api/admin/wiki/articles/:id', isAdmin, async (req, res) => {
     res.status(200).json(data);
 });
 
-// ▼▼▼ POST (CREATE) Article with Chapter Automation ▼▼▼
 app.post('/api/admin/wiki/articles', isAdmin, async (req, res) => {
     const { title, slug, content, category_id, chapters } = req.body;
     if (!title || !slug) return res.status(400).json({ error: '标题和 Slug 不能为空' });
@@ -294,18 +307,13 @@ app.post('/api/admin/wiki/articles', isAdmin, async (req, res) => {
     }
     
     const { data, error } = await supabaseAdmin.from('wiki_articles').insert({ 
-        title, 
-        slug, 
-        content: finalContent,
-        category_id: category_id || null,
-        chapters: chapters || null
+        title, slug, content: finalContent, category_id: category_id || null, chapters: chapters || null
     }).select().single();
 
     if (error) return res.status(500).json({ error: error.message });
     res.status(201).json(data);
 });
 
-// ▼▼▼ PUT (UPDATE) Article with Chapter Automation ▼▼▼
 app.put('/api/admin/wiki/articles/:id', isAdmin, async (req, res) => {
     const { id } = req.params;
     const { title, slug, content, category_id, chapters } = req.body;
@@ -319,12 +327,7 @@ app.put('/api/admin/wiki/articles/:id', isAdmin, async (req, res) => {
     }
 
     const { data, error } = await supabaseAdmin.from('wiki_articles').update({ 
-        title, 
-        slug, 
-        content: finalContent,
-        category_id: category_id || null, 
-        updated_at: new Date(),
-        chapters: chapters || null
+        title, slug, content: finalContent, category_id: category_id || null, updated_at: new Date(), chapters: chapters || null
     }).eq('id', id).select().single();
 
     if (error) return res.status(500).json({ error: error.message });
@@ -334,20 +337,24 @@ app.put('/api/admin/wiki/articles/:id', isAdmin, async (req, res) => {
 app.post('/api/admin/wiki/upload-image', isAdmin, upload.single('wiki_image'), async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ error: '未找到上传的图片文件' });
-        const file = req.file;
-        const fileExt = path.extname(file.originalname);
-        const fileName = `${crypto.randomBytes(16).toString('hex')}${fileExt}`;
-        const { error } = await supabase.storage.from('wiki-images').upload(fileName, file.buffer, { contentType: file.mimetype });
-        if (error) throw error;
-        const { data } = supabase.storage.from('wiki-images').getPublicUrl(fileName);
-        res.status(200).json({ imageUrl: data.publicUrl });
+
+        const b64 = Buffer.from(req.file.buffer).toString("base64");
+        let dataURI = "data:" + req.file.mimetype + ";base64," + b64;
+        
+        const result = await cloudinary.uploader.upload(dataURI, {
+            folder: "tribithub-wiki-images"
+        });
+
+        res.status(200).json({ imageUrl: result.secure_url });
+
     } catch (error) {
-        console.error('Image upload error:', error);
-        res.status(500).json({ error: '图片上传失败: ' + error.message });
+        console.error('Cloudinary Image upload error:', error);
+        res.status(500).json({ error: '图片上传失败: ' + (error.message || '未知错误') });
     }
 });
 
-// Server listener
+
+// --- Server Listener ---
 if (process.env.NODE_ENV !== 'production') {
     app.listen(port, () => {
         console.log(`✅ 服务器已在本地启动，正在监听 http://localhost:${port}`);
