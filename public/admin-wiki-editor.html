@@ -12,6 +12,29 @@
         .status-message { margin-top: 1rem; font-weight: 500; }
         .CodeMirror { border: 1px solid var(--border-color); border-radius: var(--border-radius); background-color: var(--bg-input); color: var(--text-primary); }
         .editor-toolbar { border-top-left-radius: var(--border-radius); border-top-right-radius: var(--border-radius); }
+        
+        /* 分类字段的 flex 布局 */
+        .category-field-wrapper {
+            display: flex;
+            align-items: flex-end;
+            gap: 0.5rem;
+        }
+        .category-field-wrapper .field {
+            flex-grow: 1;
+            margin-bottom: 0;
+        }
+
+        /* 模态框样式 */
+        .modal { display: none; position: fixed; z-index: 1050; left: 0; top: 0; width: 100%; height: 100%; overflow: hidden; background-color: rgba(0,0,0,0.5); }
+        .modal.show { display: flex; align-items: center; justify-content: center; }
+        .modal-dialog { width: auto; margin: 0.5rem; }
+        @media (min-width: 576px) { .modal-dialog { max-width: 500px; margin: 1.75rem auto; } }
+        .modal-content { position: relative; display: flex; flex-direction: column; width: 100%; background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: var(--border-radius); }
+        .modal-header { display: flex; align-items: flex-start; justify-content: space-between; padding: 1rem 1rem; border-bottom: 1px solid var(--border-color); }
+        .modal-title { margin: 0; line-height: 1.5; color: var(--text-primary); }
+        .modal-body { position: relative; flex: 1 1 auto; padding: 1rem; }
+        .modal-footer { display: flex; align-items: center; justify-content: flex-end; padding: 1rem; border-top: 1px solid var(--border-color); gap: 0.5rem; }
+        .close-btn { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-secondary); padding: 0; }
     </style>
 </head>
 <body class="is-boxed">
@@ -30,13 +53,18 @@
                 <label for="slug" class="field-label">URL Slug (用于链接)</label>
                 <input type="text" id="slug" name="slug" class="input" required placeholder="例如: getting-started">
             </div>
-            <div class="field">
-                <label for="category" class="field-label">文章分类</label>
-                <select id="category" name="category_id" class="input">
-                    <option value="">-- 无分类 --</option>
-                </select>
+
+            <div class="category-field-wrapper">
+                <div class="field">
+                    <label for="category" class="field-label">文章分类</label>
+                    <select id="category" name="category_id" class="input">
+                        <option value="">-- 无分类 --</option>
+                    </select>
+                </div>
+                <button type="button" id="addCategoryBtn" class="button button-sm">新增</button>
             </div>
-            <div class="field">
+            
+            <div class="field" style="margin-top: 16px;">
                 <label for="chapters" class="field-label">章节</label>
                 <textarea id="chapters" name="chapters" class="textarea" rows="4" placeholder="请输入文档章节，每行一个章节名称。这些将自动生成为二级标题 (##)。"></textarea>
             </div>
@@ -51,6 +79,29 @@
         <div id="statusMessage" class="status-message"></div>
     </div>
 
+    <div id="categoryModal" class="modal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">创建新分类</h5>
+                    <button type="button" class="close-btn" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="categoryForm">
+                        <div class="field">
+                            <label for="newCategoryName" class="field-label">分类名称</label>
+                            <input type="text" id="newCategoryName" class="input" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="button" data-dismiss="modal">取消</button>
+                    <button type="button" id="saveCategoryBtn" class="button button-primary">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/simplemde/latest/simplemde.min.js"></script>
 
     <script>
@@ -59,6 +110,8 @@
             const pageTitle = document.getElementById('page-title');
             const categorySelect = document.getElementById('category');
             const statusMessage = document.getElementById('statusMessage');
+            const categoryModal = document.getElementById('categoryModal');
+            const newCategoryNameInput = document.getElementById('newCategoryName');
             
             const accessToken = sessionStorage.getItem('adminAccessToken');
             if (!accessToken) {
@@ -93,14 +146,28 @@
                 },
             });
 
-            try {
-                const catResponse = await fetch('/api/admin/wiki/categories', { headers });
-                const categories = await catResponse.json();
-                categories.forEach(cat => {
-                    const option = new Option(cat.name, cat.id);
-                    categorySelect.add(option);
-                });
-            } catch (error) { console.error("加载分类失败:", error); }
+            async function loadCategories() {
+                try {
+                    const catResponse = await fetch('/api/admin/wiki/categories', { headers });
+                    const categories = await catResponse.json();
+                    
+                    const currentVal = categorySelect.value;
+                    categorySelect.options.length = 1;
+
+                    categories.forEach(cat => {
+                        const option = new Option(cat.name, cat.id);
+                        categorySelect.add(option);
+                    });
+
+                    // Try to restore previous selection
+                    categorySelect.value = currentVal;
+
+                } catch (error) {
+                    console.error("加载分类失败:", error);
+                }
+            }
+
+            await loadCategories();
             
             const urlParams = new URLSearchParams(window.location.search);
             const articleId = urlParams.get('id');
@@ -114,8 +181,12 @@
                     form.title.value = article.title;
                     form.slug.value = article.slug;
                     simplemde.value(article.content || '');
-                    if (article.category_id) categorySelect.value = article.category_id;
-                    if (article.chapters) form.chapters.value = article.chapters;
+                    if (article.category_id) {
+                        categorySelect.value = article.category_id;
+                    }
+                    if (article.chapters) {
+                        form.chapters.value = article.chapters;
+                    }
 
                 } catch (error) {
                     statusMessage.textContent = '加载文章内容失败。';
@@ -152,6 +223,51 @@
                 } catch (error) {
                     statusMessage.textContent = `保存失败: ${error.message}`;
                     statusMessage.className = 'status-message error-message';
+                }
+            });
+
+            document.getElementById('addCategoryBtn').addEventListener('click', () => {
+                newCategoryNameInput.value = '';
+                categoryModal.classList.add('show');
+            });
+
+            const closeModal = () => categoryModal.classList.remove('show');
+            
+            categoryModal.addEventListener('click', (e) => {
+                if (e.target === categoryModal || e.target.closest('[data-dismiss="modal"]')) {
+                    closeModal();
+                }
+            });
+
+            document.getElementById('saveCategoryBtn').addEventListener('click', async () => {
+                const name = newCategoryNameInput.value.trim();
+                if (!name) return alert('分类名称不能为空');
+                
+                const saveBtn = document.getElementById('saveCategoryBtn');
+                saveBtn.disabled = true;
+                saveBtn.textContent = '保存中...';
+
+                try {
+                    const response = await fetch('/api/admin/wiki/categories', {
+                        method: 'POST',
+                        headers,
+                        body: JSON.stringify({ name })
+                    });
+                    
+                    if (!response.ok) throw new Error('创建失败');
+                    
+                    const newCategory = await response.json();
+                    
+                    await loadCategories();
+
+                    categorySelect.value = newCategory.id;
+
+                    closeModal();
+                } catch (error) {
+                    alert(error.message);
+                } finally {
+                    saveBtn.disabled = false;
+                    saveBtn.textContent = '保存';
                 }
             });
         });
