@@ -12,19 +12,8 @@
         .status-message { margin-top: 1rem; font-weight: 500; }
         .CodeMirror { border: 1px solid var(--border-color); border-radius: var(--border-radius); background-color: var(--bg-input); color: var(--text-primary); }
         .editor-toolbar { border-top-left-radius: var(--border-radius); border-top-right-radius: var(--border-radius); }
-        
-        /* 分类字段的 flex 布局 */
-        .category-field-wrapper {
-            display: flex;
-            align-items: flex-end;
-            gap: 0.5rem;
-        }
-        .category-field-wrapper .field {
-            flex-grow: 1;
-            margin-bottom: 0;
-        }
-
-        /* 模态框样式 */
+        .category-field-wrapper { display: flex; align-items: flex-end; gap: 0.5rem; }
+        .category-field-wrapper .field { flex-grow: 1; margin-bottom: 0; }
         .modal { display: none; position: fixed; z-index: 1050; left: 0; top: 0; width: 100%; height: 100%; overflow: hidden; background-color: rgba(0,0,0,0.5); }
         .modal.show { display: flex; align-items: center; justify-content: center; }
         .modal-dialog { width: auto; margin: 0.5rem; }
@@ -128,6 +117,8 @@
                 element: document.getElementById("content"),
                 spellChecker: false,
                 uploadImage: true,
+                imageDrop: true,      // 启用拖拽上传
+                imagePaste: true,     // 确保粘贴上传也启用
                 imageUploadFunction: async (file, onSuccess, onError) => {
                     const formData = new FormData();
                     formData.append('wiki_image', file);
@@ -158,8 +149,7 @@
                         const option = new Option(cat.name, cat.id);
                         categorySelect.add(option);
                     });
-
-                    // Try to restore previous selection
+                    
                     categorySelect.value = currentVal;
 
                 } catch (error) {
