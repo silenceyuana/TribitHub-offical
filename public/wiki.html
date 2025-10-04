@@ -3,137 +3,311 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wiki - TribitHub</title>
+    <title>文档中心 - TribitHub</title>
     <link rel="stylesheet" href="dist/css/style.css">
     <style>
-        .wiki-container {
-            max-width: 900px;
+        /* 文档中心整体布局 */
+        .docs-layout {
+            display: flex;
+            gap: 2rem;
+            max-width: 1400px;
             margin: 2rem auto;
-            padding: 2rem;
+            padding: 0 1rem;
+            align-items: flex-start;
         }
-        .category-group {
-            margin-bottom: 2.5rem;
+
+        /* 左侧侧边栏 */
+        .docs-sidebar {
+            flex: 0 0 280px; /* 固定宽度 */
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            height: calc(100vh - 4rem); /* 让它有视口高度 */
+            overflow-y: auto; /* 内容多时可滚动 */
+            position: sticky;
+            top: 2rem;
         }
-        .category-title {
-            font-size: 1.75rem;
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 0.5rem;
+
+        .sidebar-header {
             margin-bottom: 1.5rem;
         }
-        .article-list {
-            list-style: none;
-            padding-left: 0;
-        }
-        .article-list li {
-            margin-bottom: 1rem;
-        }
-        .article-list a {
-            font-size: 1.1rem;
-            text-decoration: none;
-            font-weight: 500;
+
+        /* 搜索框 */
+        .search-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border-color-strong);
+            border-radius: var(--border-radius);
+            background-color: var(--bg-input);
             color: var(--text-primary);
         }
-        .article-list a:hover {
-            color: var(--color-primary);
+
+        /* 侧边栏导航 */
+        .sidebar-nav ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
         }
-        /* ▼▼▼ 新增：返回按钮容器样式 ▼▼▼ */
-        .back-button-container {
-            text-align: center;
-            margin-top: 3rem;
-            padding-bottom: 2rem; /* 增加一些底部间距 */
+        .sidebar-nav .category-title {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            font-weight: 600;
+            margin: 1.5rem 0 0.75rem;
+            padding: 0 0.5rem;
         }
-        /* ▲▲▲ 样式结束 ▲▲▲ */
+        .sidebar-nav .article-link {
+            display: block;
+            padding: 0.6rem 0.75rem;
+            text-decoration: none;
+            color: var(--text-primary);
+            border-radius: var(--border-radius);
+            font-weight: 500;
+            transition: background-color 0.2s ease;
+        }
+        .sidebar-nav .article-link:hover {
+            background-color: var(--bg-color);
+        }
+        .sidebar-nav .article-link.active {
+            background-color: var(--color-primary);
+            color: white;
+        }
+        
+        /* 文章章节目录 (TOC) */
+        .toc-list {
+            padding-left: 1.25rem;
+            margin-top: 0.5rem;
+        }
+        .toc-list a {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            display: block;
+            padding: 0.25rem 0;
+        }
+        .toc-list a:hover {
+            color: var(--text-primary);
+        }
+
+
+        /* 右侧主内容区 */
+        .docs-content {
+            flex-grow: 1;
+            min-width: 0; /* 防止内容过宽时撑破布局 */
+        }
+        .content-wrapper {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            padding: 2rem 3rem;
+            min-height: calc(100vh - 4rem);
+        }
+        
+        /* 响应式设计：手机端 */
+        @media (max-width: 992px) {
+            .docs-layout {
+                flex-direction: column;
+            }
+            .docs-sidebar {
+                width: 100%;
+                flex: 0 0 auto;
+                position: static;
+                height: auto;
+                margin-bottom: 2rem;
+            }
+        }
     </style>
 </head>
 <body class="is-boxed">
     <div class="body-wrap">
         <header class="site-header">
+            <!-- 您的标准页眉 -->
             <div class="container">
                 <div class="site-header-inner">
                     <div class="brand header-brand">
-                        <h1 class="m-0">
-                            <a href="index.html"><span class="header-brand-text">TribitHub</span></a>
-                        </h1>
+                        <h1 class="m-0"><a href="index.html"><span class="header-brand-text">TribitHub</span></a></h1>
                     </div>
-                     <ul id="headerLinks" class="header-links list-reset">
+                    <ul id="headerLinks" class="header-links list-reset">
                         <li><a href="index.html">首页</a></li>
                         <li><a href="pricing.html">我们的介绍</a></li>
                         <li><a href="contact.html">提交工单</a></li>
-                        <li><a href="wiki.html">Wiki</a></li>
+                        <li><a href="wiki.html">文档中心</a></li>
                         <li><a href="login-user.html">注册/登录</a></li>
                     </ul>
-                    <!-- 汉堡菜单按钮 -->
-                    <button id="headerToggle" class="header-toggle" aria-label="Menu">
-                        <span></span>
-                        <span></span>
-                        <span></span>
-                    </button>
+                    <button id="headerToggle" class="header-toggle" aria-label="Menu"><span></span><span></span><span></span></button>
                 </div>
             </div>
         </header>
 
         <main>
-            <section class="section">
-                <!-- 文章列表容器 -->
-                <div class="wiki-container" id="wiki-list-container">
-                    <h1 class="h2">正在加载文章列表...</h1>
-                </div>
+            <div class="docs-layout">
+                <!-- 左侧侧边栏 -->
+                <aside class="docs-sidebar">
+                    <div class="sidebar-header">
+                        <input type="search" id="searchInput" class="search-input" placeholder="搜索文档...">
+                    </div>
+                    <nav class="sidebar-nav" id="sidebarNav">
+                        <p>正在加载目录...</p>
+                    </nav>
+                </aside>
 
-                <!-- ▼▼▼ 新增：返回首页按钮 ▼▼▼ -->
-                <div class="container-sm back-button-container">
-                    <a href="/index.html" class="button">返回首页</a>
-                </div>
-                <!-- ▲▲▲ 按钮结束 ▲▲▲ -->
-            </section>
+                <!-- 右侧内容区 -->
+                <article class="docs-content">
+                    <div class="content-wrapper" id="contentWrapper">
+                        <h1 class="h2">欢迎来到文档中心</h1>
+                        <p>请从左侧选择一篇文章开始阅读。</p>
+                    </div>
+                </article>
+            </div>
         </main>
 
         <footer class="site-footer-minimal">
             <div class="container">
-                <div class="footer-copyright">
-                    &copy; 2025 TribitHub, 版权所有
-                </div>
+                <div class="footer-copyright">&copy; 2025 TribitHub, 版权所有</div>
             </div>
         </footer>
     </div>
     
     <script src="dist/js/auth-ui.js" defer></script>
-
-    <!-- 负责汉堡菜单功能的脚本 -->
     <script src="dist/js/nav.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
     <script>
-        document.addEventListener('DOMContentLoaded', async () => {
-            const container = document.getElementById('wiki-list-container');
-            try {
-                const response = await fetch('/api/wiki/list');
-                if (!response.ok) throw new Error('加载失败');
-                
-                const categories = await response.json();
-                
-                if (categories.length === 0) {
-                    container.innerHTML = '<h1 class="h2">Wiki</h1><p>暂无任何文章。</p>';
-                    return;
-                }
-                
-                let html = '<h1 class="h1 text-center" style="margin-bottom: 3rem;">Wiki 文章目录</h1>';
-                
-                categories.forEach(category => {
-                    if (category.wiki_articles.length > 0) {
-                        html += `<div class="category-group">`;
-                        html += `<h2 class="category-title">${category.name}</h2>`;
-                        html += `<ul class="article-list">`;
-                        category.wiki_articles.forEach(article => {
-                            html += `<li><a href="/wiki-article.html?slug=${article.slug}">${article.title}</a></li>`;
-                        });
-                        html += `</ul></div>`;
-                    }
-                });
-                
-                container.innerHTML = html;
+        document.addEventListener('DOMContentLoaded', () => {
+            const sidebarNav = document.getElementById('sidebarNav');
+            const contentWrapper = document.getElementById('contentWrapper');
+            const searchInput = document.getElementById('searchInput');
 
-            } catch (error) {
-                container.innerHTML = `<h1 class="h2">加载失败</h1><p>${error.message}</p>`;
+            let articlesData = [];
+
+            // 1. 获取并构建侧边栏
+            async function buildSidebar() {
+                try {
+                    const response = await fetch('/api/wiki/list');
+                    articlesData = await response.json();
+
+                    if (articlesData.length === 0) {
+                        sidebarNav.innerHTML = '<p>暂无文章</p>';
+                        return;
+                    }
+
+                    let navHtml = '<ul>';
+                    articlesData.forEach(category => {
+                        if (category.wiki_articles.length > 0) {
+                            navHtml += `<li class="category-item"><h3 class="category-title">${category.name}</h3><ul>`;
+                            category.wiki_articles.forEach(article => {
+                                navHtml += `
+                                    <li class="article-item">
+                                        <a href="#${article.slug}" class="article-link" data-slug="${article.slug}">${article.title}</a>
+                                    </li>
+                                `;
+                            });
+                            navHtml += '</ul></li>';
+                        }
+                    });
+                    navHtml += '</ul>';
+                    sidebarNav.innerHTML = navHtml;
+                } catch (error) {
+                    sidebarNav.innerHTML = '<p>目录加载失败</p>';
+                }
             }
+
+            // 2. 加载文章内容
+            async function loadArticle(slug) {
+                contentWrapper.innerHTML = '<h2>正在加载文章...</h2>';
+                
+                // 移除所有链接的 active 状态
+                sidebarNav.querySelectorAll('.article-link').forEach(link => link.classList.remove('active'));
+                sidebarNav.querySelectorAll('.toc-list').forEach(list => list.remove());
+
+                // 为当前链接添加 active 状态
+                const activeLink = sidebarNav.querySelector(`.article-link[data-slug="${slug}"]`);
+                if (activeLink) activeLink.classList.add('active');
+
+                try {
+                    const response = await fetch(`/api/wiki/article/${slug}`);
+                    const article = await response.json();
+
+                    const contentHtml = marked.parse(article.content || '');
+                    contentWrapper.innerHTML = `
+                        <h1 class="h1">${article.title}</h1>
+                        <div class="article-content">${contentHtml}</div>
+                    `;
+                    generateTOC(slug); // 生成章节目录
+                } catch (error) {
+                    contentWrapper.innerHTML = '<h2>文章加载失败</h2>';
+                }
+            }
+            
+            // 3. (新功能) 从文章内容中生成章节目录 (TOC)
+            function generateTOC(slug) {
+                const articleContent = contentWrapper.querySelector('.article-content');
+                if (!articleContent) return;
+
+                const headings = articleContent.querySelectorAll('h2, h3');
+                if (headings.length === 0) return;
+
+                const parentLi = sidebarNav.querySelector(`.article-link[data-slug="${slug}"]`).parentElement;
+                if (!parentLi) return;
+                
+                let tocHtml = '<ul class="toc-list">';
+                headings.forEach((heading, index) => {
+                    const title = heading.textContent;
+                    const id = `heading-${slug}-${index}`;
+                    heading.id = id; // 为标题元素添加 id
+                    tocHtml += `<li><a href="#${id}">${title}</a></li>`;
+                });
+                tocHtml += '</ul>';
+                
+                parentLi.insertAdjacentHTML('beforeend', tocHtml);
+            }
+
+            // 4. (新功能) 设置搜索功能
+            function setupSearch() {
+                searchInput.addEventListener('input', (e) => {
+                    const searchTerm = e.target.value.toLowerCase();
+                    sidebarNav.querySelectorAll('.category-item').forEach(categoryEl => {
+                        let hasVisibleArticle = false;
+                        categoryEl.querySelectorAll('.article-item').forEach(articleEl => {
+                            const articleTitle = articleEl.textContent.toLowerCase();
+                            if (articleTitle.includes(searchTerm)) {
+                                articleEl.style.display = 'block';
+                                hasVisibleArticle = true;
+                            } else {
+                                articleEl.style.display = 'none';
+                            }
+                        });
+                        // 如果分类下有可见文章，则显示分类，否则隐藏
+                        categoryEl.style.display = hasVisibleArticle ? 'block' : 'none';
+                    });
+                });
+            }
+
+            // 5. 事件委托：处理侧边栏点击
+            sidebarNav.addEventListener('click', (e) => {
+                const link = e.target.closest('.article-link');
+                if (link) {
+                    e.preventDefault();
+                    const slug = link.dataset.slug;
+                    window.location.hash = slug; // 更新 URL 的 hash
+                    loadArticle(slug);
+                }
+            });
+
+            // 6. 初始化页面
+            async function init() {
+                await buildSidebar();
+                setupSearch();
+
+                // 检查 URL 中是否已有 hash，如果有则直接加载该文章
+                const initialSlug = window.location.hash.substring(1);
+                if (initialSlug) {
+                    loadArticle(initialSlug);
+                }
+            }
+
+            init();
         });
     </script>
 </body>

@@ -7,149 +7,29 @@
     
     <link rel="stylesheet" href="/dist/css/style.css">
 
-    <script>
-        (function() {
-            const theme = localStorage.getItem('theme');
-            if (theme === 'light') {
-                document.documentElement.classList.add('light-theme');
-            }
-        })();
-    </script>
-    
     <style>
-        body {
-            background-color: var(--bg-color);
-        }
-        .admin-layout {
-            display: flex;
-            max-width: 1400px;
-            margin: 2rem auto;
-            gap: 2rem;
-            padding: 0 1rem;
-        }
-        .admin-nav {
-            flex: 0 0 200px;
-            background-color: var(--card-bg);
-            padding: 1.5rem;
-            border-radius: var(--border-radius);
-            border: 1px solid var(--border-color);
-            height: fit-content;
-        }
-        .admin-nav h2 {
-            font-size: 1.2rem;
-            margin: 0 0 1.5rem 0;
-            padding-bottom: 1rem;
-            border-bottom: 1px solid var(--border-color);
-            color: var(--text-primary);
-        }
-        .admin-nav ul {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-        .admin-nav li {
-            margin-bottom: 0.5rem;
-        }
-        .admin-nav a {
-            display: block;
-            padding: 0.75rem 1rem;
-            color: var(--text-secondary);
-            text-decoration: none;
-            border-radius: var(--border-radius);
-            font-weight: 500;
-            transition: background-color var(--transition), color var(--transition);
-        }
-        .admin-nav a.active,
-        .admin-nav a:hover {
-            background-color: var(--bg-color);
-            color: var(--text-primary);
-        }
-        .admin-nav a#logoutLink {
-            font-size: 0.9rem;
-            color: var(--text-secondary);
-            padding: 0.5rem 0;
-            margin-top: 1rem;
-            border-top: 1px solid var(--border-color);
-            padding-top: 1rem;
-        }
-        .admin-content {
-            flex-grow: 1;
-        }
-        .content-section {
-            display: none;
-        }
-        .content-section.active {
-            display: block;
-        }
-        .page-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 1rem;
-            margin-bottom: 2rem;
-        }
-        .table-wrapper {
-            overflow-x: auto;
-            background-color: var(--card-bg);
-            border-radius: var(--border-radius);
-            border: 1px solid var(--border-color);
-        }
-        .data-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        .data-table th, .data-table td {
-            padding: 0.75rem 1rem;
-            text-align: left;
-            border-bottom: 1px solid var(--border-color);
-            white-space: nowrap;
-        }
-        .data-table tr:last-child td {
-            border-bottom: none;
-        }
-        .data-table th {
-            color: var(--text-secondary);
-            font-size: 0.8rem;
-            text-transform: uppercase;
-        }
-        .data-table td {
-            color: var(--text-primary);
-        }
-        .message-cell {
-            white-space: pre-wrap;
-            word-break: break-all;
-            min-width: 300px;
-        }
-        .wiki-management-grid {
-            display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 2rem;
-        }
-        .list-group-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0.75rem 1rem;
-            background-color: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: var(--border-radius);
-            margin-bottom: 0.5rem;
-        }
-        .delete-btn {
-            background: none; border: none; color: var(--text-secondary); cursor: pointer;
-        }
-        .delete-btn:hover { color: #ef4444; }
-        .modal { display: none; position: fixed; z-index: 1050; left: 0; top: 0; width: 100%; height: 100%; overflow: hidden; background-color: rgba(0,0,0,0.5); }
-        .modal.show { display: flex; align-items: center; justify-content: center; }
-        .modal-dialog { width: auto; margin: 0.5rem; }
-        @media (min-width: 576px) { .modal-dialog { max-width: 500px; margin: 1.75rem auto; } }
-        .modal-content { position: relative; display: flex; flex-direction: column; width: 100%; background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: var(--border-radius); }
-        .modal-header { display: flex; align-items: flex-start; justify-content: space-between; padding: 1rem 1rem; border-bottom: 1px solid var(--border-color); }
-        .modal-title { margin: 0; line-height: 1.5; color: var(--text-primary); }
-        .modal-body { position: relative; flex: 1 1 auto; padding: 1rem; }
-        .modal-footer { display: flex; align-items: center; justify-content: flex-end; padding: 1rem; border-top: 1px solid var(--border-color); gap: 0.5rem; }
-        .close-btn { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-secondary); padding: 0; }
+        body { background-color: var(--bg-color); }
+        .admin-layout { display: flex; max-width: 1400px; margin: 2rem auto; gap: 2rem; padding: 0 1rem; }
+        .admin-nav { flex: 0 0 200px; background-color: var(--card-bg); padding: 1.5rem; border-radius: var(--border-radius); border: 1px solid var(--border-color); height: fit-content; }
+        .admin-nav h2 { font-size: 1.2rem; margin: 0 0 1.5rem 0; padding-bottom: 1rem; border-bottom: 1px solid var(--border-color); color: var(--text-primary); }
+        .admin-nav ul { list-style: none; padding: 0; margin: 0; }
+        .admin-nav li { margin-bottom: 0.5rem; }
+        .admin-nav a { display: block; padding: 0.75rem 1rem; color: var(--text-secondary); text-decoration: none; border-radius: var(--border-radius); font-weight: 500; transition: background-color 0.2s, color 0.2s; }
+        .admin-nav a.active, .admin-nav a:hover { background-color: var(--bg-color); color: var(--text-primary); }
+        .admin-nav a#logoutLink { font-size: 0.9rem; color: var(--text-secondary); padding: 0.5rem 0; margin-top: 1rem; border-top: 1px solid var(--border-color); padding-top: 1rem; }
+        .admin-content { flex-grow: 1; }
+        .content-section { display: none; }
+        .content-section.active { display: block; }
+        .page-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; margin-bottom: 2rem; }
+        .table-wrapper { overflow-x: auto; background-color: var(--card-bg); border-radius: var(--border-radius); border: 1px solid var(--border-color); }
+        .data-table { width: 100%; border-collapse: collapse; }
+        .data-table th, .data-table td { padding: 0.75rem 1rem; text-align: left; border-bottom: 1px solid var(--border-color); white-space: nowrap; }
+        .data-table tr:last-child td { border-bottom: none; }
+        .data-table th { color: var(--text-secondary); font-size: 0.8rem; text-transform: uppercase; }
+        .data-table td { color: var(--text-primary); }
+        .message-cell { white-space: pre-wrap; word-break: break-all; min-width: 300px; }
+        .wiki-management-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 2rem; }
+        @media (max-width: 992px) { .wiki-management-grid { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body class="is-boxed">
@@ -175,84 +55,39 @@
             </section>
 
             <section id="content-wiki" class="content-section">
-                <div class="wiki-management-grid">
-                    <div class="article-management">
-                        <div class="page-header">
-                            <h1 class="h3">文章列表</h1>
-                            <a href="/admin-wiki-editor.html" class="button button-primary button-sm">创建新文章</a>
-                        </div>
-                        <div class="table-wrapper">
-                             <table class="data-table">
-                                <thead><tr><th>文章标题</th><th>分类</th><th>操作</th></tr></thead>
-                                <tbody id="wikiArticlesTbody"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                    <div class="category-management">
-                        <div class="page-header">
-                            <h3 class="h4">文章分类</h3>
-                            <button id="addCategoryBtn" class="button button-primary button-sm">新增</button>
-                        </div>
-                        <div id="wikiCategoriesList"></div>
-                    </div>
+                <div class="page-header">
+                    <h1 class="h3">Wiki 管理</h1>
+                    <!-- ▼▼▼ 链接指向了新的编辑器页面 ▼▼▼ -->
+                    <a href="/admin-wiki-editor.html" class="button button-primary button-sm">创建新文章</a>
+                    <!-- ▲▲▲ 修改结束 ▲▲▲ -->
+                </div>
+                <div class="table-wrapper">
+                     <table class="data-table">
+                        <thead><tr><th>文章标题</th><th>分类</th><th>操作</th></tr></thead>
+                        <tbody id="wikiArticlesTbody"></tbody>
+                    </table>
                 </div>
             </section>
         </main>
-    </div>
-
-    <div id="categoryModal" class="modal">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">创建新分类</h5>
-                    <button type="button" class="close-btn" data-dismiss="modal">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <form id="categoryForm">
-                        <div class="field">
-                            <label for="categoryName" class="field-label">分类名称</label>
-                            <input type="text" id="categoryName" class="input" required>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="button" data-dismiss="modal">取消</button>
-                    <button type="button" id="saveCategoryBtn" class="button button-primary">保存</button>
-                </div>
-            </div>
-        </div>
     </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const accessToken = sessionStorage.getItem('adminAccessToken');
             if (!accessToken) { window.location.href = '/login.html'; return; }
-            const headers = { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' };
             
             const navContainer = document.querySelector('.admin-nav');
             const contentSections = document.querySelectorAll('.content-section');
             const ticketsTbody = document.getElementById('ticketsTbody');
             const wikiArticlesTbody = document.getElementById('wikiArticlesTbody');
-            const wikiCategoriesList = document.getElementById('wikiCategoriesList');
-            const categoryModal = document.getElementById('categoryModal');
-            const categoryForm = document.getElementById('categoryForm');
-            const categoryNameInput = document.getElementById('categoryName');
 
             const switchTab = (hash) => {
                 const targetHash = hash || window.location.hash || '#tickets';
                 navContainer.querySelectorAll('.nav-link').forEach(link => link.classList.toggle('active', link.hash === targetHash));
-                
-                // ========================================================================
-                // ▼▼▼ THE FINAL FIX IS HERE ▼▼▼
-                // The extra '#' in the original code has been removed.
-                // ========================================================================
                 contentSections.forEach(section => section.classList.toggle('active', section.id === `content-${targetHash.substring(1)}`));
-                // ========================================================================
-                // ▲▲▲ END OF THE FINAL FIX ▲▲▲
-                // ========================================================================
-
+                
                 if (targetHash === '#tickets') loadTickets();
-                else if (targetHash === '#wiki') loadWikiData();
+                else if (targetHash === '#wiki') loadWikiArticles();
             };
 
             navContainer.addEventListener('click', (event) => {
@@ -266,75 +101,30 @@
             });
             window.addEventListener('popstate', () => switchTab(window.location.hash));
 
-            const loadData = async (tbody, url, renderFn) => {
-                tbody.innerHTML = `<tr><td colspan="5">正在加载...</td></tr>`;
+            const loadData = async (tbody, url, renderFn, colSpan) => {
+                tbody.innerHTML = `<tr><td colspan="${colSpan}">正在加载...</td></tr>`;
                 try {
-                    const response = await fetch(url, { headers });
+                    const response = await fetch(url, { headers: { 'Authorization': `Bearer ${accessToken}` } });
                     if (!response.ok) throw new Error('加载失败');
                     const data = await response.json();
                     tbody.innerHTML = '';
                     if (data.length === 0) {
-                        tbody.innerHTML = `<tr><td colspan="5">没有数据。</td></tr>`;
+                        tbody.innerHTML = `<tr><td colspan="${colSpan}">没有数据。</td></tr>`;
                     } else {
                         data.forEach(item => tbody.innerHTML += renderFn(item));
                     }
                 } catch (error) {
-                    tbody.innerHTML = `<tr><td colspan="5" class="error-message">${error.message}</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="${colSpan}" class="error-message">${error.message}</td></tr>`;
                 }
             };
             
-            const loadTickets = () => loadData(ticketsTbody, '/api/tickets', ticket => `<tr><td>${escapeHTML(ticket.name)}</td><td>${escapeHTML(ticket.email)}</td><td>${escapeHTML(ticket.subject)}</td><td class="message-cell">${escapeHTML(ticket.message)}</td><td>${new Date(ticket.submitted_at).toLocaleString('zh-CN')}</td></tr>`);
+            const loadTickets = () => loadData(ticketsTbody, '/api/tickets', ticket => 
+                `<tr><td>${escapeHTML(ticket.name)}</td><td>${escapeHTML(ticket.email)}</td><td>${escapeHTML(ticket.subject)}</td><td class="message-cell">${escapeHTML(ticket.message)}</td><td>${new Date(ticket.submitted_at).toLocaleString('zh-CN')}</td></tr>`, 5);
             
-            const loadWikiData = () => { loadWikiArticles(); loadWikiCategories(); };
-            const loadWikiArticles = () => loadData(wikiArticlesTbody, '/api/admin/wiki/articles', article => `<tr><td>${escapeHTML(article.title)}</td><td>${article.category ? escapeHTML(article.category.name) : '未分类'}</td><td><a href="/admin-wiki-editor.html?id=${article.id}" class="button button-sm">编辑</a></td></tr>`);
-            
-            const loadWikiCategories = async () => {
-                wikiCategoriesList.innerHTML = '<p>正在加载...</p>';
-                try {
-                    const response = await fetch('/api/admin/wiki/categories', { headers: {'Authorization': `Bearer ${accessToken}`} });
-                    if (!response.ok) throw new Error('加载失败');
-                    const categories = await response.json();
-                    wikiCategoriesList.innerHTML = '';
-                    if (categories.length === 0) {
-                        wikiCategoriesList.innerHTML = '<p>没有分类。</p>';
-                    } else {
-                        categories.forEach(cat => {
-                            const catDiv = document.createElement('div');
-                            catDiv.className = 'list-group-item';
-                            catDiv.innerHTML = `<span>${escapeHTML(cat.name)}</span><button class="delete-btn" data-id="${cat.id}">&times;</button>`;
-                            wikiCategoriesList.appendChild(catDiv);
-                        });
-                    }
-                } catch (error) {
-                    wikiCategoriesList.innerHTML = `<p class="error-message">${error.message}</p>`;
-                }
-            };
-
-            document.getElementById('addCategoryBtn').addEventListener('click', () => { categoryForm.reset(); categoryModal.classList.add('show'); });
-            const closeModal = () => categoryModal.classList.remove('show');
-            categoryModal.addEventListener('click', (e) => { if (e.target === categoryModal || e.target.closest('[data-dismiss="modal"]')) closeModal(); });
-            
-            document.getElementById('saveCategoryBtn').addEventListener('click', async () => {
-                const name = categoryNameInput.value.trim();
-                if (!name) return alert('分类名称不能为空');
-                try {
-                    const response = await fetch('/api/admin/wiki/categories', { method: 'POST', headers, body: JSON.stringify({ name }) });
-                    if (!response.ok) throw new Error('创建失败');
-                    closeModal();
-                    await loadWikiCategories();
-                } catch (error) { alert(error.message); }
-            });
-            
-            wikiCategoriesList.addEventListener('click', async (e) => {
-                const deleteBtn = e.target.closest('.delete-btn');
-                if (deleteBtn && confirm('确认删除这个分类吗？')) {
-                    try {
-                        const response = await fetch(`/api/admin/wiki/categories/${deleteBtn.dataset.id}`, { method: 'DELETE', headers: {'Authorization': `Bearer ${accessToken}`} });
-                        if (!response.ok) throw new Error('删除失败');
-                        await loadWikiCategories();
-                    } catch (error) { alert(error.message); }
-                }
-            });
+            // ▼▼▼ “编辑”按钮的链接现在指向了新的编辑器页面，并带上了文章 ID ▼▼▼
+            const loadWikiArticles = () => loadData(wikiArticlesTbody, '/api/admin/wiki/articles', article => 
+                `<tr><td>${escapeHTML(article.title)}</td><td>${article.category ? escapeHTML(article.category.name) : '未分类'}</td><td><a href="/admin-wiki-editor.html?id=${article.id}" class="button button-sm">编辑</a></td></tr>`, 3);
+            // ▲▲▲ 修改结束 ▲▲▲
 
             document.getElementById('logoutLink').addEventListener('click', (e) => { e.preventDefault(); sessionStorage.removeItem('adminAccessToken'); window.location.href = '/login.html'; });
             function escapeHTML(str) { return str ? str.toString().replace(/[&<>'"]/g, tag => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;'}[tag])) : ''; }

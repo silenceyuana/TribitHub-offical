@@ -4,10 +4,7 @@
     <meta charset="UTF-8">
     <title>Wiki 文章编辑器 - TribitHub 后台</title>
     <link rel="stylesheet" href="/dist/css/style.css">
-    
-    <!-- 1. 引入 SimpleMDE 编辑器的 CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/simplemde/latest/simplemde.min.css">
-
     <style>
         body { background-color: var(--bg-color); }
         .editor-container { max-width: 900px; margin: 2rem auto; padding: 2rem; background-color: var(--card-bg); border-radius: var(--border-radius); border: 1px solid var(--border-color); }
@@ -21,7 +18,6 @@
     <div class="editor-container">
         <div class="page-header">
             <h1 class="h3" id="page-title">创建新文章</h1>
-            <!-- 【修正建议】返回列表的链接也一并修正 -->
             <a href="/admin.html#wiki" class="button button-sm">返回列表</a>
         </div>
 
@@ -38,8 +34,11 @@
                 <label for="category" class="field-label">文章分类</label>
                 <select id="category" name="category_id" class="input">
                     <option value="">-- 无分类 --</option>
-                    <!-- 分类将由 JS 动态加载 -->
                 </select>
+            </div>
+            <div class="field">
+                <label for="chapters" class="field-label">章节</label>
+                <textarea id="chapters" name="chapters" class="textarea" rows="4" placeholder="请输入文档章节，每行一个章节名称。这些将自动生成为二级标题 (##)。"></textarea>
             </div>
             <div class="field">
                 <label for="content" class="field-label">文章内容 (支持 Markdown)</label>
@@ -52,7 +51,6 @@
         <div id="statusMessage" class="status-message"></div>
     </div>
 
-    <!-- 2. 引入 SimpleMDE 编辑器的 JS -->
     <script src="https://cdn.jsdelivr.net/simplemde/latest/simplemde.min.js"></script>
 
     <script>
@@ -73,11 +71,9 @@
                 'Content-Type': 'application/json'
             };
 
-            // --- 初始化 Markdown 编辑器 ---
             const simplemde = new SimpleMDE({
                 element: document.getElementById("content"),
                 spellChecker: false,
-                // 图片上传逻辑
                 uploadImage: true,
                 imageUploadFunction: async (file, onSuccess, onError) => {
                     const formData = new FormData();
@@ -85,19 +81,18 @@
                     try {
                         const response = await fetch('/api/admin/wiki/upload-image', {
                             method: 'POST',
-                            headers: { 'Authorization': `Bearer ${accessToken}` }, // 移除 Content-Type
+                            headers: { 'Authorization': `Bearer ${accessToken}` },
                             body: formData
                         });
                         const result = await response.json();
                         if (!response.ok) throw new Error(result.error);
-                        onSuccess(result.imageUrl); // 将返回的图片 URL 插入编辑器
+                        onSuccess(result.imageUrl);
                     } catch (error) {
                         onError("图片上传失败: " + error.message);
                     }
                 },
             });
 
-            // --- 加载分类 ---
             try {
                 const catResponse = await fetch('/api/admin/wiki/categories', { headers });
                 const categories = await catResponse.json();
@@ -105,16 +100,12 @@
                     const option = new Option(cat.name, cat.id);
                     categorySelect.add(option);
                 });
-            } catch (error) {
-                console.error("加载分类失败:", error);
-            }
+            } catch (error) { console.error("加载分类失败:", error); }
             
-            // --- 判断是“创建”还是“编辑”模式 ---
             const urlParams = new URLSearchParams(window.location.search);
             const articleId = urlParams.get('id');
 
             if (articleId) {
-                // --- 编辑模式 ---
                 pageTitle.textContent = '编辑文章';
                 try {
                     const response = await fetch(`/api/admin/wiki/articles/${articleId}`, { headers });
@@ -123,15 +114,14 @@
                     form.title.value = article.title;
                     form.slug.value = article.slug;
                     simplemde.value(article.content || '');
-                    if (article.category_id) {
-                        categorySelect.value = article.category_id;
-                    }
+                    if (article.category_id) categorySelect.value = article.category_id;
+                    if (article.chapters) form.chapters.value = article.chapters;
+
                 } catch (error) {
                     statusMessage.textContent = '加载文章内容失败。';
                 }
             }
 
-            // --- 表单提交逻辑 ---
             form.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 statusMessage.textContent = '正在保存...';
@@ -141,6 +131,7 @@
                     slug: form.slug.value,
                     content: simplemde.value(),
                     category_id: form.category_id.value || null,
+                    chapters: form.chapters.value,
                 };
                 
                 try {
@@ -154,16 +145,9 @@
                     statusMessage.textContent = '保存成功！';
                     statusMessage.className = 'status-message success-message';
                     
-                    // ========================================================================
-                    // ▼▼▼ THE FINAL FIX IS HERE ▼▼▼
-                    // Changed the redirect URL to the correct admin page with the wiki hash.
-                    // ========================================================================
                     setTimeout(() => {
                         window.location.href = '/admin.html#wiki';
                     }, 1000);
-                    // ========================================================================
-                    // ▲▲▲ END OF THE FINAL FIX ▲▲▲
-                    // ========================================================================
 
                 } catch (error) {
                     statusMessage.textContent = `保存失败: ${error.message}`;
