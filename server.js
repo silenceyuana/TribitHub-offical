@@ -1,6 +1,6 @@
 // =======================================================
-// server.js - Final Version with Custom S3 Image Upload
-// This version includes all features and uses a custom S3-compatible service.
+// server.js - Final Version with Correct S3 URL Construction
+// This version includes all features and correctly builds URLs for the custom S3 service.
 // =======================================================
 
 import express from 'express';
@@ -17,7 +17,7 @@ import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 const app = express();
 const port = process.env.PORT || 3000;
 
-// --- Environment Variables Validation ---
+// --- Environment Variables ---
 const supabaseUrl = process.env.VITE_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
 const resendApiKey = process.env.RESEND_API_KEY;
@@ -26,7 +26,7 @@ const s3Endpoint = process.env.S3_ENDPOINT;
 const s3AccessKeyId = process.env.S3_ACCESS_KEY_ID;
 const s3SecretAccessKey = process.env.S3_SECRET_ACCESS_KEY;
 const s3BucketName = process.env.S3_BUCKET_NAME;
-const s3Region = 'us-east-1'; // Placeholder region for S3-compatible services
+const s3Region = 'us-east-1';
 
 if (!supabaseUrl || !supabaseServiceKey || !resendApiKey || !siteUrl || !s3Endpoint || !s3AccessKeyId || !s3SecretAccessKey || !s3BucketName) {
     console.error("错误：一个或多个关键环境变量缺失。请检查 Vercel 项目设置。");
@@ -43,7 +43,7 @@ const s3Client = new S3Client({
         accessKeyId: s3AccessKeyId,
         secretAccessKey: s3SecretAccessKey,
     },
-    forcePathStyle: true, // Crucial for most S3-compatible services
+    forcePathStyle: true,
 });
 
 const upload = multer({ storage: multer.memoryStorage() });
@@ -355,7 +355,9 @@ app.post('/api/admin/wiki/upload-image', isAdmin, upload.single('wiki_image'), a
 
         await s3Client.send(command);
 
-        const imageUrl = `${s3Endpoint}/${s3BucketName}/${fileName}`;
+        // This is the corrected URL construction logic
+        const endpointUrl = new URL(s3Endpoint);
+        const imageUrl = `https://${s3BucketName}.${endpointUrl.hostname}/${fileName}`;
         
         res.status(200).json({ imageUrl });
 
