@@ -1,6 +1,6 @@
 // =======================================================
-// server.js - Final Version with Correct S3 URL Construction
-// This version includes all features and correctly builds URLs for the custom S3 service.
+// server.js - Final Version with Supabase Keep-Alive Endpoint
+// This version includes all features and a cron job endpoint to prevent pausing.
 // =======================================================
 
 import express from 'express';
@@ -82,7 +82,7 @@ app.post('/api/send-code', async (req, res) => {
         const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
         await supabase.from('verification_codes').insert({ email, code: verificationCode, expires_at: expiresAt, type: 'signup' });
         await resend.emails.send({
-            from: 'TribitHub <message@betteryuan.cn>', to: [email], subject: `您的 TribitHub 注册验证码是 ${verificationCode}`,
+            from: 'TribitHub <message@tribit.top>', to: [email], subject: `您的 TribitHub 注册验证码是 ${verificationCode}`,
             html: `<p>你好, 这是您的验证码: <strong>${verificationCode}</strong></p>`,
         });
         res.status(200).json({ message: '验证码已成功发送至您的邮箱！' });
@@ -120,7 +120,7 @@ app.post('/api/password/send-reset-code', async (req, res) => {
             const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
             await supabase.from('verification_codes').insert({ email, code: verificationCode, expires_at: expiresAt, type: 'password_reset' });
             await resend.emails.send({
-                from: 'TribitHub 安全中心 <message@betteryuan.cn>', to: [email], subject: `您的密码重置验证码是 ${verificationCode}`,
+                from: 'TribitHub 安全中心 <message@tribit.top>', to: [email], subject: `您的密码重置验证码是 ${verificationCode}`,
                 html: `<p>你好, 这是您的密码重置验证码: <strong>${verificationCode}</strong></p>`,
             });
         }
@@ -176,6 +176,28 @@ app.post('/login', async (req, res) => {
     }
 });
 
+// --- Keep-Alive Endpoint for Supabase ---
+app.get('/api/keep-alive', async (req, res) => {
+    try {
+        const { error } = await supabaseAdmin
+            .from('profiles')
+            .select('id', { count: 'exact', head: true })
+            .limit(1);
+
+        if (error) {
+            console.error('Keep-alive ping failed:', error.message);
+            return res.status(500).json({ status: 'ping_failed', error: error.message });
+        }
+
+        console.log('Keep-alive ping successful at', new Date().toISOString());
+        res.status(200).json({ status: 'alive' });
+
+    } catch (error) {
+        console.error('Error in keep-alive endpoint:', error.message);
+        res.status(500).json({ status: 'error', message: error.message });
+    }
+});
+
 
 // --- Tickets System ---
 app.post('/api/tickets', async (req, res) => {
@@ -189,7 +211,7 @@ app.post('/api/tickets', async (req, res) => {
         if (!subject || !message) return res.status(400).json({ error: '主题和内容不能为空' });
         const { data: newTicket } = await supabase.from('tickets').insert({ subject, message, user_id: user.id }).select().single();
         await resend.emails.send({
-            from: 'TribitHub 支持 <message@betteryuan.cn>', to: [user.email], subject: `您的工单 #${newTicket.id} 已收到`,
+            from: 'TribitHub 支持 <message@tribit.top>', to: [user.email], subject: `您的工单 #${newTicket.id} 已收到`,
             html: `<p>你好 ${user.user_metadata.username || ''}, 您的工单已提交成功。</p>`,
         });
         res.status(200).json({ message: '工单提交成功！', ticket: newTicket });
@@ -355,7 +377,6 @@ app.post('/api/admin/wiki/upload-image', isAdmin, upload.single('wiki_image'), a
 
         await s3Client.send(command);
 
-        // This is the corrected URL construction logic
         const endpointUrl = new URL(s3Endpoint);
         const imageUrl = `https://${s3BucketName}.${endpointUrl.hostname}/${fileName}`;
         

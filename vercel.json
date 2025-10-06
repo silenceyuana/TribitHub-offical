@@ -7,13 +7,13 @@
     }
   ],
   "routes": [
+    { "src": "/api/(.*)", "dest": "server.js" },
+    { "src": "/login", "dest": "server.js" }
+  ],
+  "crons": [
     {
-      "src": "/admin",
-      "dest": "/login.html"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "server.js"
+      "path": "/api/keep-alive",
+      "schedule": "0 0 * * *"
     }
   ]
 }
