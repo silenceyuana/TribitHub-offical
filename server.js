@@ -1,6 +1,6 @@
 // =======================================================
-// server.js - Final Version with Cloudinary Image Upload
-// This version includes all features discussed.
+// server.js - Final Version with Custom S3 Image Upload
+// This version includes all features and uses a custom S3-compatible service.
 // =======================================================
 
 import express from 'express';
@@ -12,44 +12,48 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import crypto from 'crypto';
 import multer from 'multer';
-import { v2 as cloudinary } from 'cloudinary';
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Environment Variables Validation
+// --- Environment Variables Validation ---
 const supabaseUrl = process.env.VITE_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
 const resendApiKey = process.env.RESEND_API_KEY;
 const siteUrl = process.env.SITE_URL;
-const cloudinaryCloudName = process.env.CLOUDINARY_CLOUD_NAME;
-const cloudinaryApiKey = process.env.CLOUDINARY_API_KEY;
-const cloudinaryApiSecret = process.env.CLOUDINARY_API_SECRET;
+const s3Endpoint = process.env.S3_ENDPOINT;
+const s3AccessKeyId = process.env.S3_ACCESS_KEY_ID;
+const s3SecretAccessKey = process.env.S3_SECRET_ACCESS_KEY;
+const s3BucketName = process.env.S3_BUCKET_NAME;
+const s3Region = 'us-east-1'; // Placeholder region for S3-compatible services
 
-if (!supabaseUrl || !supabaseServiceKey || !resendApiKey || !siteUrl || !cloudinaryCloudName || !cloudinaryApiKey || !cloudinaryApiSecret) {
+if (!supabaseUrl || !supabaseServiceKey || !resendApiKey || !siteUrl || !s3Endpoint || !s3AccessKeyId || !s3SecretAccessKey || !s3BucketName) {
     console.error("错误：一个或多个关键环境变量缺失。请检查 Vercel 项目设置。");
 }
 
-// Client Initializations
+// --- Client Initializations ---
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 const resend = new Resend(resendApiKey);
-
-cloudinary.config({ 
-  cloud_name: cloudinaryCloudName, 
-  api_key: cloudinaryApiKey, 
-  api_secret: cloudinaryApiSecret
+const s3Client = new S3Client({
+    endpoint: s3Endpoint,
+    region: s3Region,
+    credentials: {
+        accessKeyId: s3AccessKeyId,
+        secretAccessKey: s3SecretAccessKey,
+    },
+    forcePathStyle: true, // Crucial for most S3-compatible services
 });
 
 const upload = multer({ storage: multer.memoryStorage() });
 
-// Middleware
+// --- Middleware ---
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Middleware to check for Admin role
 const isAdmin = async (req, res, next) => {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ error: '未提供认证令牌' });
@@ -78,7 +82,7 @@ app.post('/api/send-code', async (req, res) => {
         const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
         await supabase.from('verification_codes').insert({ email, code: verificationCode, expires_at: expiresAt, type: 'signup' });
         await resend.emails.send({
-            from: 'TribitHub <message@betteryuan.cn>', to: [email], subject: `您的 TribitHub 注册验证码是 ${verificationCode}`,
+            from: 'TribitHub <message@tribit.top>', to: [email], subject: `您的 TribitHub 注册验证码是 ${verificationCode}`,
             html: `<p>你好, 这是您的验证码: <strong>${verificationCode}</strong></p>`,
         });
         res.status(200).json({ message: '验证码已成功发送至您的邮箱！' });
@@ -116,7 +120,7 @@ app.post('/api/password/send-reset-code', async (req, res) => {
             const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
             await supabase.from('verification_codes').insert({ email, code: verificationCode, expires_at: expiresAt, type: 'password_reset' });
             await resend.emails.send({
-                from: 'TribitHub 安全中心 <message@betteryuan.cn>', to: [email], subject: `您的密码重置验证码是 ${verificationCode}`,
+                from: 'TribitHub 安全中心 <message@tribit.top>', to: [email], subject: `您的密码重置验证码是 ${verificationCode}`,
                 html: `<p>你好, 这是您的密码重置验证码: <strong>${verificationCode}</strong></p>`,
             });
         }
@@ -185,7 +189,7 @@ app.post('/api/tickets', async (req, res) => {
         if (!subject || !message) return res.status(400).json({ error: '主题和内容不能为空' });
         const { data: newTicket } = await supabase.from('tickets').insert({ subject, message, user_id: user.id }).select().single();
         await resend.emails.send({
-            from: 'TribitHub 支持 <message@betteryuan.cn>', to: [user.email], subject: `您的工单 #${newTicket.id} 已收到`,
+            from: 'TribitHub 支持 <message@tribit.top>', to: [user.email], subject: `您的工单 #${newTicket.id} 已收到`,
             html: `<p>你好 ${user.user_metadata.username || ''}, 您的工单已提交成功。</p>`,
         });
         res.status(200).json({ message: '工单提交成功！', ticket: newTicket });
@@ -337,18 +341,26 @@ app.put('/api/admin/wiki/articles/:id', isAdmin, async (req, res) => {
 app.post('/api/admin/wiki/upload-image', isAdmin, upload.single('wiki_image'), async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ error: '未找到上传的图片文件' });
-
-        const b64 = Buffer.from(req.file.buffer).toString("base64");
-        let dataURI = "data:" + req.file.mimetype + ";base64," + b64;
         
-        const result = await cloudinary.uploader.upload(dataURI, {
-            folder: "tribithub-wiki-images"
+        const fileExt = path.extname(req.file.originalname);
+        const fileName = `wiki-images/${crypto.randomBytes(16).toString('hex')}${fileExt}`;
+
+        const command = new PutObjectCommand({
+            Bucket: s3BucketName,
+            Key: fileName,
+            Body: req.file.buffer,
+            ContentType: req.file.mimetype,
+            ACL: 'public-read'
         });
 
-        res.status(200).json({ imageUrl: result.secure_url });
+        await s3Client.send(command);
+
+        const imageUrl = `${s3Endpoint}/${s3BucketName}/${fileName}`;
+        
+        res.status(200).json({ imageUrl });
 
     } catch (error) {
-        console.error('Cloudinary Image upload error:', error);
+        console.error('S3 Image upload error:', error);
         res.status(500).json({ error: '图片上传失败: ' + (error.message || '未知错误') });
     }
 });
