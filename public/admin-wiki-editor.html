@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <title>Wiki 文章编辑器 - TribitHub 后台</title>
     <link rel="stylesheet" href="/dist/css/style.css">
-    <link rel="icon" href="dist/images/favicon.ico">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/simplemde/latest/simplemde.min.css">
     <style>
         body { background-color: var(--bg-color); }
@@ -114,12 +113,49 @@
                 'Content-Type': 'application/json'
             };
 
+            const imageUploadFunction = async (file, onSuccess, onError) => {
+                // 前端文件大小检查 (Vercel Hobby plan limit is 4.5MB)
+                if (file.size > 4.5 * 1024 * 1024) {
+                    return onError("图片上传失败: 文件大小不能超过 4.5 MB。");
+                }
+
+                const formData = new FormData();
+                formData.append('wiki_image', file);
+                try {
+                    const response = await fetch('/api/admin/wiki/upload-image', {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${accessToken}` },
+                        body: formData
+                    });
+
+                    const contentType = response.headers.get("content-type");
+                    if (response.ok && contentType && contentType.indexOf("application/json") !== -1) {
+                        const result = await response.json();
+                        onSuccess(result.imageUrl);
+                    } else {
+                        const errorText = await response.text();
+                        if (errorText.includes("Request Entity Too Large")) {
+                            throw new Error("文件大小超过了服务器 4.5 MB 的限制。");
+                        }
+                        // Try to parse as JSON if possible, otherwise show raw text
+                        try {
+                           const jsonError = JSON.parse(errorText);
+                           throw new Error(jsonError.error || '未知服务器错误');
+                        } catch(e) {
+                           throw new Error(errorText.substring(0, 200) || '未知服务器错误');
+                        }
+                    }
+                } catch (error) {
+                    onError("上传失败: " + error.message);
+                }
+            };
+
             function selectAndUploadImage(editor) {
                 const input = document.createElement('input');
                 input.type = 'file';
                 input.accept = 'image/*';
                 
-                input.onchange = async () => {
+                input.onchange = () => {
                     if (!input.files || input.files.length === 0) return;
                     const file = input.files[0];
                     const cm = editor.codemirror;
@@ -127,24 +163,16 @@
                     const placeholder = `![正在上传 ${file.name}...]()`;
                     cm.replaceSelection(placeholder);
 
-                    const formData = new FormData();
-                    formData.append('wiki_image', file);
-                    try {
-                        const response = await fetch('/api/admin/wiki/upload-image', {
-                            method: 'POST',
-                            headers: { 'Authorization': `Bearer ${accessToken}` },
-                            body: formData
-                        });
-                        const result = await response.json();
-                        if (!response.ok) throw new Error(result.error);
-                        
-                        const newText = `![${file.name}](${result.imageUrl})`;
-                        cm.setValue(cm.getValue().replace(placeholder, newText));
-
-                    } catch (error) {
-                        console.error("图片上传失败:", error);
-                        cm.setValue(cm.getValue().replace(placeholder, `![上传失败: ${error.message}]()`));
-                    }
+                    imageUploadFunction(file, 
+                        (imageUrl) => {
+                            const newText = `![${file.name}](${imageUrl})`;
+                            cm.setValue(cm.getValue().replace(placeholder, newText));
+                        }, 
+                        (errorMessage) => {
+                            console.error("图片上传失败:", errorMessage);
+                            cm.setValue(cm.getValue().replace(placeholder, `![${errorMessage}]()`));
+                        }
+                    );
                 };
                 
                 input.click();
@@ -169,22 +197,7 @@
                 ],
                 imageDrop: true,
                 imagePaste: true,
-                imageUploadFunction: async (file, onSuccess, onError) => {
-                    const formData = new FormData();
-                    formData.append('wiki_image', file);
-                    try {
-                        const response = await fetch('/api/admin/wiki/upload-image', {
-                            method: 'POST',
-                            headers: { 'Authorization': `Bearer ${accessToken}` },
-                            body: formData
-                        });
-                        const result = await response.json();
-                        if (!response.ok) throw new Error(result.error);
-                        onSuccess(result.imageUrl);
-                    } catch (error) {
-                        onError("图片上传失败: " + error.message);
-                    }
-                },
+                imageUploadFunction: imageUploadFunction,
             });
 
             async function loadCategories() {
